@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+      args:
+        - SLACK_TOKEN=${SLACK_TOKEN}
+    command: "mix run --no-halt"
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/usr/src/alex-koin
+    depends_on:
+      - db
+    environment:
+      SLACK_TOKEN: "${SLACK_TOKEN}"
+
+  db:
+    image: "postgres:9.6.3"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
