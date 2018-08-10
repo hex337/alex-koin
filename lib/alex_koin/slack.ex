@@ -10,8 +10,6 @@ defmodule AlexKoin.SlackRtm do
 
   def handle_event(message = %{type: "message", text: "<UC37P4L3Y>" <> text, user: user}, slack, state) do
     user = SlackCommands.get_or_create(user)
-    
-    IO.puts inspect(message)
 
     handle_message(user, message, slack, message_type(text))
 
@@ -41,20 +39,15 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp handle_message(user, message, slack, {:balance, _text}) do
-    msg_ts = case Map.has_key?(message, :thread_ts) do
-      true -> message.thread_ts
-      false -> message.ts
-    end
-
     IO.puts "#{user.id} is asking about their balance"
 
-    msg = "You have #{SlackCommands.get_balance(user_wallet(user))}:akc:."
+    balance = SlackCommands.get_balance(user_wallet(user))
 
     %{
       type: "message",
-      text: msg,
+      text: "You have #{balance}:akc:.",
       channel: message.channel,
-      thread_ts: msg_ts
+      thread_ts: msg_ts(message)
     }
     |> Poison.encode!()
     |> send_raw(slack)
@@ -88,4 +81,6 @@ defmodule AlexKoin.SlackRtm do
   defp user_wallet(_user = %{id: user_id}) do
     AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
   end
+  defp message_ts(%{thread_ts: message_ts}), do: message_ts
+  defp message_ts(%{ts: message_ts}), do: message_ts
 end
