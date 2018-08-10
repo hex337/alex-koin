@@ -10,7 +10,7 @@ defmodule AlexKoin.SlackRtm do
 
   def handle_event(message = %{type: "message", text: "<UC37P4L3Y>" <> text, user: user}, slack, state) do
     SlackCommands.get_or_create(user)
-    |> handle_message(user, message, slack, message_type(text)) # returns tuple {text, message_ts}
+    |> handle_message(message, message_type(text)) # returns tuple {text, message_ts}
     |> send_raw_message(message.channel, slack)
     {:ok, state}
   end
@@ -37,20 +37,20 @@ defmodule AlexKoin.SlackRtm do
     end
   end
 
-  defp handle_message(user, message, slack, {:balance, _text}) do
+  defp handle_message(user, message, {:balance, _text}) do
     IO.puts "#{user.id} is asking about their balance"
 
     balance = SlackCommands.get_balance(user_wallet(user))
 
-    {"You have #{balance}:akc:.", thread_ts: msg_ts(message)}
+    {"You have #{balance}:akc:.", thread_ts: message_ts(message)}
   end
-  defp handle_message(user = %{id: "U8BBZEB35"}, message, slack, {:create, text}) do
+  defp handle_message(user = %{id: "U8BBZEB35"}, _message, {:create, text}) do
     "create koin " <> reason = text
     coin = user |> SlackCommands.create_coin(reason)
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
-  defp handle_message(user, message, slack, {:transfer, text}) do
+  defp handle_message(user, _message, {:transfer, text}) do
     regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
     captures = Regex.named_captures(regex, text)
     IO.puts inspect(captures)
@@ -66,8 +66,8 @@ defmodule AlexKoin.SlackRtm do
       {"You don't own that coin.", nil}
     end
   end
-  defp handle_message(user, _, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
-  defp handle_message(_,_,_,_), do: {nil, nil}
+  defp handle_message(user, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
+  defp handle_message(_,_,_), do: {nil, nil}
 
   defp user_wallet(_user = %{id: user_id}) do
     AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
@@ -79,7 +79,7 @@ defmodule AlexKoin.SlackRtm do
     %{
       type: "message",
       text: text,
-      channel: message.channel,
+      channel: channel,
       thread_ts: message_ts
     }
     |> Poison.encode!()
