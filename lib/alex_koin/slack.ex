@@ -9,10 +9,9 @@ defmodule AlexKoin.SlackRtm do
   end
 
   def handle_event(message = %{type: "message", text: "<UC37P4L3Y>" <> text, user: user}, slack, state) do
-    user = SlackCommands.get_or_create(user)
-
-    handle_message(user, message, slack, message_type(text))
-
+    SlackCommands.get_or_create(user)
+    |> handle_message(user, message, slack, message_type(text)) # returns tuple {text, message_ts}
+    |> send_raw_message(message.channel, slack)
     {:ok, state}
   end
 
@@ -43,20 +42,13 @@ defmodule AlexKoin.SlackRtm do
 
     balance = SlackCommands.get_balance(user_wallet(user))
 
-    %{
-      type: "message",
-      text: "You have #{balance}:akc:.",
-      channel: message.channel,
-      thread_ts: msg_ts(message)
-    }
-    |> Poison.encode!()
-    |> send_raw(slack)
+    {"You have #{balance}:akc:.", thread_ts: msg_ts(message)}
   end
   defp handle_message(user = %{id: "U8BBZEB35"}, message, slack, {:create, text}) do
     "create koin " <> reason = text
     coin = user |> SlackCommands.create_coin(reason)
 
-    send_message("Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", message.channel, slack)
+    {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
   defp handle_message(user, message, slack, {:transfer, text}) do
     regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
@@ -69,18 +61,28 @@ defmodule AlexKoin.SlackRtm do
     # validate this coin belongs to the user currently
     if coin.wallet_id == user_wallet(user).id do
       SlackCommands.transfer_coin(coin, user, to_user, captures["memo"])
-
-      send_message("Transfered coin.", message.channel, slack)
+      {"Transfered coin.", nil}
     else
-      send_message("You don't own that coin.", message.channel, slack)
+      {"You don't own that coin.", nil}
     end
   end
   defp handle_message(user, _, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
-  defp handle_message(_,_,_,_), do: nil
+  defp handle_message(_,_,_,_), do: {nil, nil}
 
   defp user_wallet(_user = %{id: user_id}) do
     AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
   end
   defp message_ts(%{thread_ts: message_ts}), do: message_ts
   defp message_ts(%{ts: message_ts}), do: message_ts
+
+  defp send_raw_message({text, message_ts}, channel, slack) do
+    %{
+      type: "message",
+      text: text,
+      channel: message.channel,
+      thread_ts: message_ts
+    }
+    |> Poison.encode!()
+    |> send_raw(slack)
+  end
 end
