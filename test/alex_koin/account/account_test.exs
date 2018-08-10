@@ -10,10 +10,21 @@ defmodule AlexKoin.AccountTest do
     @update_attrs %{balance: 456.7}
     @invalid_attrs %{balance: nil}
 
+    @user_attrs %{email: "asdf@asdf.net", first_name: "alex", last_name: "koin", slack_id: "U1234567"}
+
+    def fixture(:user) do
+      {:ok, user} = Account.create_user(@user_attrs)
+      user
+    end
+
     def wallet_fixture(attrs \\ %{}) do
+      user = fixture(:user)
+      fk_attrs = %{user_id: user.id}
+
       {:ok, wallet} =
         attrs
         |> Enum.into(@valid_attrs)
+        |> Enum.into(fk_attrs)
         |> Account.create_wallet()
 
       wallet
@@ -30,7 +41,9 @@ defmodule AlexKoin.AccountTest do
     end
 
     test "create_wallet/1 with valid data creates a wallet" do
-      assert {:ok, %Wallet{} = wallet} = Account.create_wallet(@valid_attrs)
+      user = fixture(:user)
+      attrs = @valid_attrs |> Map.put(:user_id, user.id)
+      assert {:ok, %Wallet{} = wallet} = Account.create_wallet(attrs)
       assert wallet.balance == 120.5
     end
 

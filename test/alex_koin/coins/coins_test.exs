@@ -58,7 +58,11 @@ defmodule AlexKoin.CoinsTest do
     end
 
     test "create_coin/1 with valid data creates a coin" do
-      assert {:ok, %Coin{} = coin} = Coins.create_coin(@valid_attrs)
+      user = user_fixture()
+      wallet = wallet_fixture(%{user_id: user.id})
+      attrs = @valid_attrs |> Enum.into(%{mined_by_id: user.id, wallet_id: wallet.id})
+
+      assert {:ok, %Coin{} = coin} = Coins.create_coin(attrs)
       assert coin.hash == "some hash"
       assert coin.origin == "some origin"
     end
