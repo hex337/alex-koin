@@ -6,9 +6,9 @@ defmodule AlexKoin.AccountTest do
   describe "users" do
     alias AlexKoin.Account.User
 
-    @valid_attrs %{email: "some email", first_name: "some first_name", last_name: "some last_name"}
-    @update_attrs %{email: "some updated email", first_name: "some updated first_name", last_name: "some updated last_name"}
-    @invalid_attrs %{email: nil, first_name: nil, last_name: nil}
+    @valid_attrs %{email: "test@internet.com", first_name: "alex", last_name: "koin", slack_id: "U1234567"}
+    @update_attrs %{email: "some updated email", first_name: "some updated first_name", last_name: "some updated last_name", slack_id: "U1234568"}
+    @invalid_attrs %{email: nil, first_name: nil, last_name: nil, slack_id: nil}
 
     def user_fixture(attrs \\ %{}) do
       {:ok, user} =
