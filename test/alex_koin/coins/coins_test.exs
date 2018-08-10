@@ -2,6 +2,7 @@ defmodule AlexKoin.CoinsTest do
   use AlexKoin.DataCase
 
   alias AlexKoin.Coins
+  alias AlexKoin.Account
 
   describe "coins" do
     alias AlexKoin.Coins.Coin
@@ -10,10 +11,37 @@ defmodule AlexKoin.CoinsTest do
     @update_attrs %{hash: "some updated hash", origin: "some updated origin"}
     @invalid_attrs %{hash: nil, origin: nil}
 
+    @wallet_attrs %{balance: 0.0}
+    @user_attrs %{email: "asdf@asdf.com", first_name: "alex", last_name: "koin", slack_id: "U1234567"}
+
+    def user_fixture(attrs \\ %{}) do
+      {:ok, user} =
+        attrs
+        |> Enum.into(@user_attrs)
+        |> Account.create_user()
+
+      user
+    end
+
+    def wallet_fixture(attrs \\ %{}) do
+      {:ok, wallet} =
+        attrs
+        |> Enum.into(@wallet_attrs)
+        |> Account.create_wallet()
+
+      wallet
+    end
+
     def coin_fixture(attrs \\ %{}) do
+      user = user_fixture()
+      wallet = wallet_fixture(%{user_id: user.id})
+
+      fk_attrs = %{mined_by_id: user.id, wallet_id: wallet.id}
+
       {:ok, coin} =
         attrs
         |> Enum.into(@valid_attrs)
+        |> Enum.into(fk_attrs)
         |> Coins.create_coin()
 
       coin
@@ -30,7 +58,11 @@ defmodule AlexKoin.CoinsTest do
     end
 
     test "create_coin/1 with valid data creates a coin" do
-      assert {:ok, %Coin{} = coin} = Coins.create_coin(@valid_attrs)
+      user = user_fixture()
+      wallet = wallet_fixture(%{user_id: user.id})
+      attrs = @valid_attrs |> Enum.into(%{mined_by_id: user.id, wallet_id: wallet.id})
+
+      assert {:ok, %Coin{} = coin} = Coins.create_coin(attrs)
       assert coin.hash == "some hash"
       assert coin.origin == "some origin"
     end

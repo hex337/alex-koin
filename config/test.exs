@@ -15,5 +15,5 @@ config :alex_koin, AlexKoin.Repo,
   username: "postgres",
   password: "postgres",
   database: "alex_koin_test",
-  hostname: "localhost",
+  hostname: "db",
   pool: Ecto.Adapters.SQL.Sandbox

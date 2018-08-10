@@ -8,8 +8,15 @@ defmodule AlexKoinWeb.WalletControllerTest do
   @update_attrs %{balance: 456.7}
   @invalid_attrs %{balance: nil}
 
-  def fixture(:wallet) do
-    {:ok, wallet} = Account.create_wallet(@create_attrs)
+  @user_attrs %{email: "asdf@asdf.net", first_name: "alex", last_name: "koin", slack_id: "U1234567"}
+
+  def fixture(:user) do
+    {:ok, user} = Account.create_user(@user_attrs)
+    user
+  end
+
+  def fixture(:wallet, attrs) do
+    {:ok, wallet} = Account.create_wallet(attrs)
     wallet
   end
 
@@ -26,7 +33,9 @@ defmodule AlexKoinWeb.WalletControllerTest do
 
   describe "create wallet" do
     test "renders wallet when data is valid", %{conn: conn} do
-      conn = post conn, wallet_path(conn, :create), wallet: @create_attrs
+      user = fixture(:user)
+      attrs = @create_attrs |> Map.put(:user_id, user.id)
+      conn = post conn, wallet_path(conn, :create), wallet: attrs
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
       conn = get conn, wallet_path(conn, :show, id)
@@ -72,8 +81,15 @@ defmodule AlexKoinWeb.WalletControllerTest do
     end
   end
 
+  defp create_user() do
+    user = fixture(:user)
+    {:ok, user: user}
+  end
+
   defp create_wallet(_) do
-    wallet = fixture(:wallet)
-    {:ok, wallet: wallet}
+    {:ok, user: user} = create_user()
+    wallet_attrs = @create_attrs |> Map.put(:user_id, user.id)
+    wallet = fixture(:wallet, wallet_attrs)
+    {:ok, wallet: wallet, user: user}
   end
 end
