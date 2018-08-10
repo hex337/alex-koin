@@ -8,75 +8,13 @@ defmodule AlexKoin.SlackRtm do
     {:ok, state}
   end
 
-  def handle_event(message = %{type: "message"}, slack, state) do
-    bot_user_id = "UC37P4L3Y"
-    admin_id = "U8BBZEB35"
+  def handle_event(message = %{type: "message", text: "<UC37P4L3Y>" <> text, user: user}, slack, state) do
+    user = SlackCommands.get_or_create(user)
+    
+    IO.puts inspect(message)
 
-    if Map.has_key?(message, :text) && Map.has_key?(message, :user) && String.starts_with?(message.text, "<@#{bot_user_id}>") do
-      text_with_bot = message.text
-      "<@UC37P4L3Y> " <> text = text_with_bot 
-      user = SlackCommands.get_or_create(message.user)
-      user_wallet = AlexKoin.Account.Wallet |> AlexKoin.Repo.get_by(user_id: user.id)
-      is_admin = user.slack_id == admin_id
+    handle_message(user, message, slack, message_type(text))
 
-      IO.puts inspect(message)
-
-      if text =~ "my balance" do
-        msg_ts = case Map.has_key?(message, :thread_ts) do
-          true -> message.thread_ts
-          false -> message.ts
-        end
-
-        IO.puts "#{user.id} is asking about their balance"
-
-        balance = user_wallet |> SlackCommands.get_balance
-
-        msg = "You have #{balance}:akc:."
-
-        %{
-          type: "message",
-          text: msg,
-          channel: message.channel,
-          thread_ts: msg_ts
-        }
-        |> Poison.encode!()
-        |> send_raw(slack)
-      end
-
-      if text =~ "create koin" && is_admin do
-        "create koin " <> reason = text
-        coin = user |> SlackCommands.create_coin(reason)
-
-        send_message("Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", message.channel, slack)
-      end
-
-      if text =~ "transfer" do
-        regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
-        captures = Regex.named_captures(regex, text)
-        IO.puts inspect(captures)
-
-        to_user = SlackCommands.get_or_create(captures["to_slack_id"])
-        coin = AlexKoin.Coins.Coin |> AlexKoin.Repo.get_by(hash: captures["coin_uuid"])
-
-        # validate this coin belongs to the user currently
-        if coin.wallet_id == user_wallet.id do
-          SlackCommands.transfer_coin(coin, user, to_user, captures["memo"])
-
-          send_message("Transfered coin.", message.channel, slack)
-        else
-          send_message("You don't own that coin.", message.channel, slack)
-        end
-      end
-
-      if text =~ "list koins" do
-        SlackCommands.get_coins(user_wallet)
-      end
-
-      if text =~ "leaderboard" do
-      end
-    end
-
-    #send_message("I got a message!", message.channel, slack)
     {:ok, state}
   end
 
@@ -91,4 +29,63 @@ defmodule AlexKoin.SlackRtm do
   end
 
   def handle_info(_, _, state), do: {:ok, state}
+
+  defp message_type(text) do
+    cond do
+      text =~ "my balance" -> {:balance, text}
+      text =~ "create koin" -> {:create, text}
+      text =~ "transfer" -> {:transfer, text}
+      text =~ "list koins" -> {:list_koins, text}
+      text =~ "leaderboard" -> {:leaderboard, text}
+    end
+  end
+
+  defp handle_message(user, message, slack, {:balance, _text}) do
+    msg_ts = case Map.has_key?(message, :thread_ts) do
+      true -> message.thread_ts
+      false -> message.ts
+    end
+
+    IO.puts "#{user.id} is asking about their balance"
+
+    msg = "You have #{SlackCommands.get_balance(user_wallet(user))}:akc:."
+
+    %{
+      type: "message",
+      text: msg,
+      channel: message.channel,
+      thread_ts: msg_ts
+    }
+    |> Poison.encode!()
+    |> send_raw(slack)
+  end
+  defp handle_message(user = %{id: "U8BBZEB35"}, message, slack, {:create, text}) do
+    "create koin " <> reason = text
+    coin = user |> SlackCommands.create_coin(reason)
+
+    send_message("Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", message.channel, slack)
+  end
+  defp handle_message(user, message, slack, {:transfer, text}) do
+    regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
+    captures = Regex.named_captures(regex, text)
+    IO.puts inspect(captures)
+
+    to_user = SlackCommands.get_or_create(captures["to_slack_id"])
+    coin = AlexKoin.Coins.Coin |> AlexKoin.Repo.get_by(hash: captures["coin_uuid"])
+
+    # validate this coin belongs to the user currently
+    if coin.wallet_id == user_wallet(user).id do
+      SlackCommands.transfer_coin(coin, user, to_user, captures["memo"])
+
+      send_message("Transfered coin.", message.channel, slack)
+    else
+      send_message("You don't own that coin.", message.channel, slack)
+    end
+  end
+  defp handle_message(user, _, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
+  defp handle_message(_,_,_,_), do: nil
+
+  defp user_wallet(_user = %{id: user_id}) do
+    AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
+  end
 end

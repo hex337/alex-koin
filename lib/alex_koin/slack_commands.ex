@@ -5,8 +5,6 @@ defmodule AlexKoin.SlackCommands do
   alias AlexKoin.Account.Transaction
   alias AlexKoin.Coins.Coin
 
-  @admin_user_id "U8BBZEB35"
-
   def get_or_create(slack_id) do
     case User |> Repo.get_by(slack_id: slack_id) do
       nil ->
@@ -26,7 +24,7 @@ defmodule AlexKoin.SlackCommands do
     wallet.balance
   end
 
-  def get_coins(wallet) do
+  def get_coins(_wallet) do
   end
 
   def create_coin(user, reason) do
