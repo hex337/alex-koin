@@ -46,13 +46,13 @@ defmodule AlexKoin.SlackRtm do
     {"You have #{balance}:akc:.", message_ts(message)}
   end
   defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}) do
-    "create koin " <> reason = text
+    " create koin " <> reason = text
     coin = user |> SlackCommands.create_coin(reason)
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
   defp create_reply(user, _message, {:transfer, text}) do
-    regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
+    regex = ~r/ transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
     captures = Regex.named_captures(regex, text)
     IO.puts inspect(captures)
 
