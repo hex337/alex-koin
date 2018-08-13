@@ -17,3 +17,6 @@ config :alex_koin, AlexKoin.Repo,
   database: "alex_koin_test",
   hostname: "db",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :alex_koin,
+  :slack_module, AlexKoin.Test.SlackSendStub
