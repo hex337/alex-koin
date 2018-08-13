@@ -1,7 +1,7 @@
 FROM elixir:1.6
 MAINTAINER hex337
 
-ARG GITHUB_TOKEN
+ARG SLACK_TOKEN
 
 ENV HOME=/usr/src/alex-koin
 
