@@ -45,7 +45,7 @@ defmodule AlexKoin.SlackRtm do
 
     {"You have #{balance}:akc:.", message_ts(message)}
   end
-  defp create_reply(user = %{id: "U8BBZEB35"}, _message, {:create, text}) do
+  defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}) do
     "create koin " <> reason = text
     coin = user |> SlackCommands.create_coin(reason)
 
