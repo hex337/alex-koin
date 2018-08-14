@@ -46,8 +46,7 @@ defmodule AlexKoin.SlackRtm do
     {"You have #{balance}:akc:.", message_ts(message)}
   end
   defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}) do
-    " create koin " <> reason = text
-    coin = user |> SlackCommands.create_coin(reason)
+    coin = user |> SlackCommands.create_coin(reason(text))
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
@@ -85,5 +84,9 @@ defmodule AlexKoin.SlackRtm do
     }
     |> Poison.encode!()
     |> @slack_module.send_raw(slack)
+  end
+  defp reason(text) do
+    %{"reason" => reason} = Regex.named_captures(~r/create koin\s+(?<reason>.*)/, text)
+    reason
   end
 end
