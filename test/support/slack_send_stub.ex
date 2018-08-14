@@ -26,7 +26,8 @@ defmodule AlexKoin.Test.SlackSendStub do
   end
 
   def send_raw(message_json, slack) do
-    respond! :send_raw, [message_json, slack]
+    mod_json = message_json |> String.replace(~r(`........-....-....-....-............`), "uuid here")
+    respond! :send_raw, [mod_json, slack]
   end
 
   defp respond!(fun_name, list_of_args) do

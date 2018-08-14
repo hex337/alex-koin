@@ -1,8 +1,6 @@
 defmodule AlexKoin.SlackCommands do
   alias AlexKoin.Repo
-  alias AlexKoin.Account.User
-  alias AlexKoin.Account.Wallet
-  alias AlexKoin.Account.Transaction
+  alias AlexKoin.Account.{User, Wallet, Transaction}
   alias AlexKoin.Coins.Coin
 
   def get_or_create(slack_id) do
@@ -40,34 +38,31 @@ defmodule AlexKoin.SlackCommands do
     {:ok, coin} = Repo.insert(new_coin)
 
     # Now we create the initial transaction to set the coin up
-    transfer_coin(coin, user, user, "Initial creation.")
+    transfer_coin(coin, user_wallet, user_wallet, "Initial creation.")
 
     coin
   end
 
-  def transfer_coin(coin, from, to_user, memo) do
-    new_txn = %Transaction{
-      amount: 1.0,
-      memo: memo,
-      from_id: from.id,
-      to_id: to_user.id,
-      coin_id: coin.id
-    }
-
-    {:ok, txn} = Repo.insert(new_txn)
+  def transfer_coin(coin, from_wallet, to_wallet, memo) do
+    txn = %{
+        amount: 1.0,
+        memo: memo,
+        from_id: from_wallet.id,
+        to_id: to_wallet.id,
+        coin_id: coin.id
+      }
+    |> Transaction.changeset()
+    |> Repo.insert!()
 
     # update the balance
-    to_wallet = Wallet |> Repo.get_by(user_id: to_user.id)
 
     AlexKoin.Account.update_wallet(to_wallet, %{balance: to_wallet.balance + 1})
     AlexKoin.Coins.update_coin(coin, %{wallet_id: to_wallet.id})
 
-    if from.id != to_user.id do
-      from_wallet = Wallet |> Repo.get_by(user_id: from.id)
-
+    if from_wallet.id != to_wallet.id do # if we're not creating a coin, decrement the from_wallet
       AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - 1})
     end
 
-    {:ok, txn}
+    txn
   end
 end

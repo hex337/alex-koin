@@ -10,7 +10,7 @@ defmodule AlexKoin.SlackRtm do
     {:ok, state}
   end
 
-  def handle_event(message = %{type: "message", text: "<@UC37P4L3Y>" <> text, user: user}, slack, state) do
+  def handle_event(message = %{type: "message", text: "<@UC37P4L3Y> " <> text, user: user}, slack, state) do
     SlackCommands.get_or_create(user)
     |> create_reply(message, message_type(text)) # returns tuple {text, message_ts}
     |> send_raw_message(message.channel, slack)
@@ -46,8 +46,7 @@ defmodule AlexKoin.SlackRtm do
     {"You have #{balance}:akc:.", message_ts(message)}
   end
   defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}) do
-    " create koin " <> reason = text
-    coin = user |> SlackCommands.create_coin(reason)
+    coin = user |> SlackCommands.create_coin(reason(text))
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
@@ -61,14 +60,14 @@ defmodule AlexKoin.SlackRtm do
 
     # validate this coin belongs to the user currently
     if coin.wallet_id == user_wallet(user).id do
-      SlackCommands.transfer_coin(coin, user, to_user, captures["memo"])
+      SlackCommands.transfer_coin(coin, user_wallet(user), user_wallet(to_user), captures["memo"])
       {"Transfered coin.", nil}
     else
       {"You don't own that coin.", nil}
     end
   end
   defp create_reply(user, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
-  defp create_reply(_,_,_), do: {nil, nil}
+  defp create_reply(user,_,_), do: IO.inspect(user); {nil, nil}
 
   defp user_wallet(_user = %{id: user_id}) do
     AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
@@ -85,5 +84,9 @@ defmodule AlexKoin.SlackRtm do
     }
     |> Poison.encode!()
     |> @slack_module.send_raw(slack)
+  end
+  defp reason(text) do
+    %{"reason" => reason} = Regex.named_captures(~r/create koin\s+(?<reason>.*)/, text)
+    reason
   end
 end
