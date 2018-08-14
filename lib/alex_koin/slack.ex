@@ -3,6 +3,15 @@ defmodule AlexKoin.SlackRtm do
 
   alias AlexKoin.SlackCommands
 
+  @available_commands %{
+    "my balance" => :balance,
+    "create koin" => :create,
+    "transfer" => :transfer,
+    "list koins" => :list_koins,
+    "leaderboard" => :leaderboard,
+    "help" => :help
+  }
+
   def handle_connect(slack, state) do
     IO.puts "Connected as #{slack.me.name}"
     {:ok, state}
@@ -10,8 +19,9 @@ defmodule AlexKoin.SlackRtm do
 
   def handle_event(message = %{type: "message", text: "<UC37P4L3Y>" <> text, user: user}, slack, state) do
     SlackCommands.get_or_create(user)
-    |> create_reply(message, message_type(text)) # returns tuple {text, message_ts}
-    |> send_raw_message(message.channel, slack)
+      |> create_reply(message, message_type(text)) # returns tuple {text, message_ts}
+      |> send_raw_message(message.channel, slack)
+
     {:ok, state}
   end
 
@@ -28,13 +38,12 @@ defmodule AlexKoin.SlackRtm do
   def handle_info(_, _, state), do: {:ok, state}
 
   defp message_type(text) do
-    cond do
-      text =~ "my balance" -> {:balance, text}
-      text =~ "create koin" -> {:create, text}
-      text =~ "transfer" -> {:transfer, text}
-      text =~ "list koins" -> {:list_koins, text}
-      text =~ "leaderboard" -> {:leaderboard, text}
-    end
+    type =
+      @available_commands
+        |> Map.keys
+        |> Enum.find(fn key -> text =~ key end)
+
+    if type, do: {@available_commands[type], text}
   end
 
   defp create_reply(user, message, {:balance, _text}) do
@@ -42,7 +51,7 @@ defmodule AlexKoin.SlackRtm do
 
     balance = SlackCommands.get_balance(user_wallet(user))
 
-    {"You have #{balance}:akc:.", thread_ts: message_ts(message)}
+    {"You have #{balance} :akc:.", thread_ts: message_ts(message)}
   end
   defp create_reply(user = %{id: "U8BBZEB35"}, _message, {:create, text}) do
     "create koin " <> reason = text
@@ -67,6 +76,14 @@ defmodule AlexKoin.SlackRtm do
     end
   end
   defp create_reply(user, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
+  defp create_reply(user, _, {:help, _text}), do
+    message =
+      @available_commands
+        |> Enum.keys
+        |> Enum.join("  \n- ")
+
+    {"Available commands must include  \n", thread_ts: message_ts(message)}
+  end
   defp create_reply(_,_,_), do: {nil, nil}
 
   defp user_wallet(_user = %{id: user_id}) do
