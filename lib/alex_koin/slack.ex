@@ -1,5 +1,7 @@
 defmodule AlexKoin.SlackRtm do
-  use Slack
+  @slack_module Application.get_env(
+    :alex_koin, :slack_module, Slack.Sends
+  )
 
   alias AlexKoin.SlackCommands
 
@@ -17,7 +19,7 @@ defmodule AlexKoin.SlackRtm do
     {:ok, state}
   end
 
-  def handle_event(message = %{type: "message", text: "<UC37P4L3Y>" <> text, user: user}, slack, state) do
+  def handle_event(message = %{type: "message", text: "<@UC37P4L3Y>" <> text, user: user}, slack, state) do
     SlackCommands.get_or_create(user)
       |> create_reply(message, message_type(text)) # returns tuple {text, message_ts}
       |> send_raw_message(message.channel, slack)
@@ -30,7 +32,7 @@ defmodule AlexKoin.SlackRtm do
   def handle_info({:message, text, channel}, slack, state) do
     IO.puts "Sending your message, captain!"
 
-    send_message(text, channel, slack)
+    @slack_module.send_message(text, channel, slack)
 
     {:ok, state}
   end
@@ -47,20 +49,18 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp create_reply(user, message, {:balance, _text}) do
-    IO.puts "#{user.id} is asking about their balance"
-
     balance = SlackCommands.get_balance(user_wallet(user))
 
-    {"You have #{balance} :akc:.", thread_ts: message_ts(message)}
+    {"You have #{balance} :akc:.", message_ts(message)}
   end
-  defp create_reply(user = %{id: "U8BBZEB35"}, _message, {:create, text}) do
-    "create koin " <> reason = text
+  defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}) do
+    " create koin " <> reason = text
     coin = user |> SlackCommands.create_coin(reason)
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
   defp create_reply(user, _message, {:transfer, text}) do
-    regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
+    regex = ~r/ transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
     captures = Regex.named_captures(regex, text)
     IO.puts inspect(captures)
 
@@ -99,7 +99,7 @@ defmodule AlexKoin.SlackRtm do
       channel: channel,
       thread_ts: message_ts
     }
-    |> Poison.encode!()
-    |> send_raw(slack)
+      |> Poison.encode!()
+      |> @slack_module.send_raw(slack)
   end
 end
