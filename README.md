@@ -9,11 +9,11 @@ This assumes you have docker set up.
 You will also need a slack bot token to test with. You can create your own slack org for free and then add a bot integration. You'll want to set up a `.env` file with your token that looks like this:
 
 ```
-export SLACK_TOKEN=asdf-TOKEN-STUFF
+SLACK_TOKEN=asdf-TOKEN-STUFF
+KOIN_BOT_ID=UC123456
 ```
 
-You'll then need to `source .env` to get the `SLACK_TOKEN` into your env, since the process expects it for the bot to work.
-
+Docker will pick up variables defined in your `.env` when you build a container and make them available when running.
 
 ```sh
 make build
