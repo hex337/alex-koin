@@ -12,19 +12,12 @@ defmodule AlexKoin.SlackRtm do
     {:ok, state}
   end
 
+  def handle_event(%{user: @koin_bot_id}) do: {:ok, state}
   def handle_event(message = %{type: "message", channel: "D" <> _rest, user: user}, slack, state) do
-    # Ignore if it's a message in a DM from the bot itself
-    if user == @koin_bot_id do
-      {:ok, state}
-    else
-      # We care because we don't have to thread in a DM.
-      handle_msg(user, message, message_type(message.text), slack, state)
-    end
+    handle_msg(user, message, message_type(message.text), slack, state)
   end
 
   def handle_event(message = %{type: "message", text: "<@" <> @koin_bot_id <> "> " <> text, user: user}, slack, state) do
-    IO.puts inspect(message)
-
     handle_msg(user, message, message_type(text), slack, state)
   end
 
@@ -71,15 +64,13 @@ defmodule AlexKoin.SlackRtm do
   end
   defp create_reply(user, _message, {:transfer, text}) do
     regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
-    captures = Regex.named_captures(regex, text)
-    IO.puts inspect(captures)
+    %{"memo" => memo, "to_slack_id" => to_slack_id, "coin_uuid" => coin_uuid} = Regex.named_captures(regex, text)
 
-    to_user = SlackCommands.get_or_create(captures["to_slack_id"])
-    coin = AlexKoin.Coins.Coin |> AlexKoin.Repo.get_by(hash: captures["coin_uuid"])
+    to_user = SlackCommands.get_or_create(to_slack_id)
+    coin = AlexKoin.Coins.Coin |> AlexKoin.Repo.get_by(hash: coin_uuid)
 
     # validate this coin belongs to the user currently
     if coin.wallet_id == user_wallet(user).id do
-      memo = captures["memo"]
       SlackCommands.transfer_coin(coin, user_wallet(user), user_wallet(to_user), memo)
 
       # Notify the recipient of the new koin
