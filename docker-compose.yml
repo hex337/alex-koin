@@ -7,6 +7,7 @@ services:
       dockerfile: ./Dockerfile
       args:
         - SLACK_TOKEN=${SLACK_TOKEN}
+        - KOIN_BOT_ID=${KOIN_BOT_ID}
     command: "mix run --no-halt"
     ports:
       - "4000:4000"
@@ -16,6 +17,7 @@ services:
       - db
     environment:
       SLACK_TOKEN: "${SLACK_TOKEN}"
+      KOIN_BOT_ID: "${KOIN_BOT_ID}"
 
   db:
     image: "postgres:9.6.3"
