@@ -12,7 +12,7 @@ defmodule AlexKoin.SlackRtm do
     {:ok, state}
   end
 
-  def handle_event(%{user: @koin_bot_id}) do: {:ok, state}
+  def handle_event(%{user: @koin_bot_id}), do: {:ok, state}
   def handle_event(message = %{type: "message", channel: "D" <> _rest, user: user}, slack, state) do
     handle_msg(user, message, message_type(message.text), slack, state)
   end
