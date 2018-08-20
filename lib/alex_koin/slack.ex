@@ -72,11 +72,7 @@ defmodule AlexKoin.SlackRtm do
     # validate this coin belongs to the user currently
     if coin.wallet_id == user_wallet(user).id do
       SlackCommands.transfer_coin(coin, user_wallet(user), user_wallet(to_user), memo)
-
-      # Notify the recipient of the new koin
-      notify_msg = "<@#{user.slack_id}> just transfered 1.0 :akc: with the memo: '#{memo}'"
-      dm_channel = dm_channel_for_slack_id(to_slack_id, slack.ims)
-      send_raw_message({notify_msg, nil}, dm_channel, slack)
+      notify_receiver(user, to_user, memo, slack)
 
       {"Transfered coin.", nil}
     else
@@ -110,6 +106,12 @@ defmodule AlexKoin.SlackRtm do
   defp reason(text) do
     %{"reason" => reason} = Regex.named_captures(~r/create koin\s+(?<reason>.*)/, text)
     reason
+  end
+
+  defp notify_receiver(from, to, memo, slack) do
+    notify_msg = "<@#{from.slack_id}> just transfered 1.0 :akc: with the memo: '#{memo}'"
+    dm_channel = dm_channel_for_slack_id(to.slack_id, slack.ims)
+    send_raw_message({notify_msg, nil}, dm_channel, slack)
   end
 
   defp dm_channel_for_slack_id(slack_id, ims) do
