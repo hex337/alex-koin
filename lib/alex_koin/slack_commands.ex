@@ -44,6 +44,8 @@ defmodule AlexKoin.SlackCommands do
   end
 
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
+    #Logger.info "Transfering coin #{coin.hash} from #{from_wallet} to #{to_wallet}."
+
     txn = %{
         amount: 1.0,
         memo: memo,

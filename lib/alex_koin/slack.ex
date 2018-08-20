@@ -35,7 +35,7 @@ defmodule AlexKoin.SlackRtm do
 
   defp handle_msg(user, message, message_type, slack, state) do
     SlackCommands.get_or_create(user)
-    |> create_reply(message, message_type) # returns tuple {text, message_ts}
+    |> create_reply(message, message_type, slack) # returns tuple {text, message_ts}
     |> send_raw_message(message.channel, slack)
 
     {:ok, state}
@@ -52,17 +52,17 @@ defmodule AlexKoin.SlackRtm do
     end
   end
 
-  defp create_reply(user, message, {:balance, _text}) do
+  defp create_reply(user, message, {:balance, _text}, _slack) do
     balance = SlackCommands.get_balance(user_wallet(user))
 
     {"You have #{balance}:akc:.", message_ts(message)}
   end
-  defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}) do
+  defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}, _slack) do
     coin = user |> SlackCommands.create_coin(reason(text))
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
-  defp create_reply(user, _message, {:transfer, text}) do
+  defp create_reply(user, _message, {:transfer, text}, slack) do
     regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
     %{"memo" => memo, "to_slack_id" => to_slack_id, "coin_uuid" => coin_uuid} = Regex.named_captures(regex, text)
 
@@ -72,22 +72,15 @@ defmodule AlexKoin.SlackRtm do
     # validate this coin belongs to the user currently
     if coin.wallet_id == user_wallet(user).id do
       SlackCommands.transfer_coin(coin, user_wallet(user), user_wallet(to_user), memo)
-
-      # Notify the recipient of the new koin
-      #notify_msg = "<@#{user.slack_id}> just transfered 1.0 :akc: with the memo: '#{memo}'"
-      #dm_channel = Slack.Web.Im.open(%{user: to_user.slack_id})
-      #  |> Map.get("channel")
-      #  |> Map.get("id")
-
-      #send_raw_message({notify_msg, nil}, dm_channel, slack)
+      notify_receiver(user, to_user, memo, slack)
 
       {"Transfered coin.", nil}
     else
       {"You don't own that coin.", nil}
     end
   end
-  defp create_reply(user, _, {:list_koins, _text}), do: SlackCommands.get_coins(user_wallet(user))
-  defp create_reply(user,_,_), do: nil
+  defp create_reply(user, _, {:list_koins, _text}, _slack), do: SlackCommands.get_coins(user_wallet(user))
+  defp create_reply(_user,_,_,_), do: nil
 
   defp user_wallet(_user = %{id: user_id}) do
     AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
@@ -114,4 +107,19 @@ defmodule AlexKoin.SlackRtm do
     %{"reason" => reason} = Regex.named_captures(~r/create koin\s+(?<reason>.*)/, text)
     reason
   end
+
+  defp notify_receiver(from, to, memo, slack) do
+    notify_msg = "<@#{from.slack_id}> just transfered 1.0 :akc: with the memo: '#{memo}'"
+    dm_channel = dm_channel_for_slack_id(to.slack_id, slack.ims)
+    send_raw_message({notify_msg, nil}, dm_channel, slack)
+  end
+
+  defp dm_channel_for_slack_id(slack_id, ims) do
+    Enum.into(ims, [])
+    |> get_channel_id(slack_id)
+  end
+
+  defp get_channel_id([], _), do: nil
+  defp get_channel_id([{id, %{user: uid}} | rest], user_id) when uid == user_id, do: id
+  defp get_channel_id([_|rest], user_id), do: get_channel_id(rest, user_id)
 end
