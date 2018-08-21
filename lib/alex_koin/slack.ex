@@ -7,6 +7,10 @@ defmodule AlexKoin.SlackRtm do
 
   alias AlexKoin.SlackCommands
 
+  def handle_close(_info, _slack, state) do
+    {:ok, state}
+  end
+
   def handle_connect(slack, state) do
     IO.puts "Connected as #{slack.me.name}"
     {:ok, state}
@@ -62,21 +66,26 @@ defmodule AlexKoin.SlackRtm do
 
     {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
   end
-  defp create_reply(user, _message, {:transfer, text}, slack) do
+  defp create_reply(user, message, {:transfer, text}, slack) do
     regex = ~r/transfer (?<coin_uuid>[0-9a-zA-Z-]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
-    %{"memo" => memo, "to_slack_id" => to_slack_id, "coin_uuid" => coin_uuid} = Regex.named_captures(regex, text)
 
-    to_user = SlackCommands.get_or_create(to_slack_id)
-    coin = AlexKoin.Coins.Coin |> AlexKoin.Repo.get_by(hash: coin_uuid)
+    if Regex.match?(regex, text) do
+      %{"memo" => memo, "to_slack_id" => to_slack_id, "coin_uuid" => coin_uuid} = Regex.named_captures(regex, text)
 
-    # validate this coin belongs to the user currently
-    if coin.wallet_id == user_wallet(user).id do
-      SlackCommands.transfer_coin(coin, user_wallet(user), user_wallet(to_user), memo)
-      notify_receiver(user, to_user, memo, slack)
+      to_user = SlackCommands.get_or_create(to_slack_id)
+      coin = AlexKoin.Coins.Coin |> AlexKoin.Repo.get_by(hash: coin_uuid)
 
-      {"Transfered coin.", nil}
+      # validate this coin belongs to the user currently
+      if coin && coin.wallet_id == user_wallet(user).id do
+        SlackCommands.transfer_coin(coin, user_wallet(user), user_wallet(to_user), memo)
+        notify_receiver(user, to_user, memo, slack)
+
+        {"Transfered koin.", nil}
+      else
+        {"You don't own that koin.", nil}
+      end
     else
-      {"You don't own that coin.", nil}
+      {"Error: Transfer format is 'transfer [koin hash] to @user [memo here]'", message_ts(message)}
     end
   end
   defp create_reply(user, _, {:list_koins, _text}, _slack), do: SlackCommands.get_coins(user_wallet(user))
