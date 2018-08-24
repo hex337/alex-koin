@@ -26,22 +26,22 @@ defmodule AlexKoin.SlackTest do
 
       slack_message = %{
         type: "message",
-        text: "<@UC37P4L3Y> create koin thingy",
+        text: "<@UC37P4L3Y> create koin <@U12345> for thingy",
         user: "U8BBZEB35",
         ts: "some thread thingy",
         channel: "some channel"
       }
 
-      assert SlackRtm.handle_event(slack_message, %{}, %{})
+      assert SlackRtm.handle_event(slack_message, %{ims: []}, %{})
     end
 
-    test "responds to transfer messages for coin you don't own" do
-      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"You don't own that koin.\",\"channel\":\"D123456\"}"
+    test "responds to transfer messages when you don't have enough balance" do
+      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"You don't have enough koin to do that transfer.\",\"channel\":\"D123456\"}"
       AlexKoin.Test.SlackSendStub.respond_to(:send_raw, [json, %{}], false)
 
       slack_message = %{
         type: "message",
-        text: "transfer 12345-asdf-12345 to <@U123457> memo here",
+        text: "transfer 10 to <@U123457> memo here",
         user: "U123456",
         ts: "timestamp",
         channel: "D123456"
@@ -51,12 +51,12 @@ defmodule AlexKoin.SlackTest do
     end
 
     test "responds to an invalid transfer with info" do
-      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"Error: Transfer format is 'transfer [koin hash] to @user [memo here]'\",\"channel\":\"D123456\"}"
+      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'\",\"channel\":\"D123456\"}"
       AlexKoin.Test.SlackSendStub.respond_to(:send_raw, [json, %{}], false)
 
       slack_message = %{
         type: "message",
-        text: "transfer 12345-asdf-12345 to <@U123457>",
+        text: "transfer 1 to <@U123457>",
         user: "U123456",
         ts: "timestamp",
         channel: "D123456"

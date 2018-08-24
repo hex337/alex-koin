@@ -1,10 +1,18 @@
 defmodule AlexKoin.SlackCommands do
+  require Ecto.Query
   alias AlexKoin.Repo
+  alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
   alias AlexKoin.Coins.Coin
 
-  def get_or_create(slack_id) do
-    case User |> Repo.get_by(slack_id: slack_id) do
+  # Use slack to populate name and email
+  def get_or_create(slack_id, slack) do
+    user_info = case Map.fetch(slack.users, slack_id) do
+      :error -> nil
+      {:ok, info} -> info
+    end
+
+    user = case User |> Repo.get_by(slack_id: slack_id) do
       nil ->
         new_user = %User{ slack_id: slack_id }
         {:ok, user_obj} = Repo.insert(new_user)
@@ -15,6 +23,19 @@ defmodule AlexKoin.SlackCommands do
         user_obj
       db_user ->
         db_user
+    end
+
+    update_user_info(user, user_info)
+  end
+
+  defp update_user_info(user, nil), do: user
+  defp update_user_info(user, user_info) do
+    %{ :profile => %{ :first_name => first_name, :last_name => last_name, :email => email }} = user_info
+    if user.first_name != first_name || user.last_name != last_name || user.email != email do
+      {:ok, updated_user} = Account.update_user(user, %{first_name: first_name, last_name: last_name, email: email})
+      updated_user
+    else
+      user
     end
   end
 
@@ -43,6 +64,14 @@ defmodule AlexKoin.SlackCommands do
     coin
   end
 
+  def transfer(from_wallet, to_wallet, amount, memo) do
+    # 1. get coins to transfer
+    coins = Coin |> Ecto.Query.where(wallet_id: ^from_wallet.id) |> Ecto.Query.limit(^amount) |> Repo.all
+
+    # 2. move the coins over to the other wallet
+    coins |> Enum.each(fn(c) -> transfer_coin(c, from_wallet, to_wallet, memo) end)
+  end
+
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
     #Logger.info "Transfering coin #{coin.hash} from #{from_wallet} to #{to_wallet}."
 
@@ -66,5 +95,14 @@ defmodule AlexKoin.SlackCommands do
     end
 
     txn
+  end
+
+  # Returns wallet objects with the users preloaded.
+  def leaderboard(limit) do
+    Wallet
+    |> Ecto.Query.order_by(desc: :balance)
+    |> Ecto.Query.limit(^limit)
+    |> Ecto.Query.preload(:user)
+    |> Repo.all
   end
 end

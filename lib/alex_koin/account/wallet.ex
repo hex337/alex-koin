@@ -1,11 +1,13 @@
 defmodule AlexKoin.Account.Wallet do
   use Ecto.Schema
   import Ecto.Changeset
+  alias AlexKoin.Account.User
 
 
   schema "wallets" do
     field :balance, :float
-    field :user_id, :id
+
+    belongs_to :user, User
 
     timestamps()
   end
