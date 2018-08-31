@@ -66,10 +66,10 @@ defmodule AlexKoin.SlackCommands do
 
   def transfer(from_wallet, to_wallet, amount, memo) do
     # 1. get coins to transfer
-    coins = Coin |> Ecto.Query.where(wallet_id: ^from_wallet.id) |> Ecto.Query.limit(^amount) |> Repo.all
+    coins = Repo.all(Coin.for_wallet(from_wallet, amount))
 
     # 2. move the coins over to the other wallet
-    coins |> Enum.each(fn(c) -> transfer_coin(c, from_wallet, to_wallet, memo) end)
+    Enum.each(coins, fn(c) -> transfer_coin(c, from_wallet, to_wallet, memo) end)
   end
 
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
@@ -99,10 +99,9 @@ defmodule AlexKoin.SlackCommands do
 
   # Returns wallet objects with the users preloaded.
   def leaderboard(limit) do
-    Wallet
-    |> Ecto.Query.order_by(desc: :balance)
-    |> Ecto.Query.limit(^limit)
-    |> Ecto.Query.preload(:user)
-    |> Repo.all
+    wallets = Repo.all(Wallet.by_balance(limit))
+    min_balance = List.last(wallets).balance
+
+    Repo.all(Wallet.by_minimum_balance(min_balance))
   end
 end

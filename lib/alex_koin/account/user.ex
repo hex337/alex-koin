@@ -19,6 +19,6 @@ defmodule AlexKoin.Account.User do
   def changeset(user, attrs) do
     user
     |> cast(attrs, [:email, :first_name, :last_name, :slack_id])
-    |> validate_required([:email, :first_name, :last_name, :slack_id])
+    |> validate_required([:slack_id])
   end
 end

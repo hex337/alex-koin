@@ -17,7 +17,8 @@ defmodule AlexKoin.SlackTest do
         ts: "some thread thingy",
         channel: "some channel"
       }
-      assert SlackRtm.handle_event(slack_message, %{}, %{})
+
+      assert SlackRtm.handle_event(slack_message, %{users: %{}}, %{})
     end
 
     test "responds to create messages" do
@@ -32,11 +33,11 @@ defmodule AlexKoin.SlackTest do
         channel: "some channel"
       }
 
-      assert SlackRtm.handle_event(slack_message, %{ims: []}, %{})
+      assert SlackRtm.handle_event(slack_message, %{users: %{}, ims: %{}}, %{})
     end
 
     test "responds to transfer messages when you don't have enough balance" do
-      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"You don't have enough koin to do that transfer.\",\"channel\":\"D123456\"}"
+      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"Not enough koin to do that transfer.\",\"channel\":\"D123456\"}"
       AlexKoin.Test.SlackSendStub.respond_to(:send_raw, [json, %{}], false)
 
       slack_message = %{
@@ -47,7 +48,7 @@ defmodule AlexKoin.SlackTest do
         channel: "D123456"
       }
 
-      assert SlackRtm.handle_event(slack_message, %{}, %{})
+      assert SlackRtm.handle_event(slack_message, %{users: %{}}, %{})
     end
 
     test "responds to an invalid transfer with info" do
@@ -62,7 +63,7 @@ defmodule AlexKoin.SlackTest do
         channel: "D123456"
       }
 
-      assert SlackRtm.handle_event(slack_message, %{}, %{})
+      assert SlackRtm.handle_event(slack_message, %{users: %{}}, %{})
     end
   end
 

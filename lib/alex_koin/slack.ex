@@ -83,22 +83,9 @@ defmodule AlexKoin.SlackRtm do
       %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => amount} = Regex.named_captures(regex, text)
       usr_wlt_amt = Kernel.round(user_wallet(user).balance)
       {amt, _rem} = Integer.parse(amount)
+      to_user = SlackCommands.get_or_create(to_slack_id, slack)
 
-      if usr_wlt_amt >= amt do
-        to_user = SlackCommands.get_or_create(to_slack_id, slack)
-        
-        if to_user.id == user.id do
-          {"No.", nil}
-        else
-          SlackCommands.transfer(user_wallet(user), user_wallet(to_user), amt, memo)
-
-          notify_receiver(user, to_user, amount, memo, slack)
-
-          {"Transfered koin.", nil}
-        end
-      else
-        {"You don't have enough koin to do that transfer.", message_ts(message)}
-      end
+      transfer_reply(usr_wlt_amt, amt, user, to_user, message, memo, slack)
     else
       {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", message_ts(message)}
     end
@@ -137,8 +124,16 @@ defmodule AlexKoin.SlackRtm do
     |> @slack_module.send_raw(slack)
   end
 
+  defp transfer_reply(usr_amount, amt, _user, _to_user, message, _memo, _slack) when usr_amount < amt, do: {"Not enough koin to do that transfer.", message_ts(message)}
+  defp transfer_reply(_usr_amount, _amt, user, to_user, message, _memo, _slack) when user == to_user, do: {"No.", message_ts(message)}
+  defp transfer_reply(_usr_amount, amt, user, to_user, message, memo, slack) do
+    SlackCommands.transfer(user_wallet(user), user_wallet(to_user), amt, memo)
+    notify_receiver(user, to_user, amt, memo, slack)
+    {"Transfered koin.", message_ts(message)}
+  end
+
   defp notify_creator(creator, reason, slack) do
-    msg = "You just mined an :akc: for '#{reason}'."
+    msg = "You just mined an :akc_in_motion: for '#{reason}'."
     dm_channel = dm_channel_for_slack_id(creator.slack_id, slack.ims)
 
     if dm_channel do
@@ -169,7 +164,12 @@ defmodule AlexKoin.SlackRtm do
       :error ->
         "#{wallet.balance} :akc: - #{wallet.user.slack_id}"
       {:ok, user_info} ->
-        "#{wallet.balance} :akc: - #{user_info[:profile][:display_name]}"
+        "#{wallet.balance} :akc: - #{name_to_display(user_info)}"
     end
   end
+
+  defp name_to_display(%{ profile: %{ display_name: display_name } }) when display_name != "", do: display_name
+  defp name_to_display(%{ profile: %{ real_name: real_name } }) when real_name != "", do: real_name
+  defp name_to_display(%{ profile: _profile }), do: "" # Catch all if we don't have what we need
+  defp name_to_display(nil), do: ""
 end
