@@ -21,7 +21,8 @@ config :alex_koin, AlexKoinWeb.Endpoint,
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:user_id]
+  metadata: [:user_id],
+  colors: [enabled: true]
 
 # Configure Slack Bot
 config :alex_koin, AlexKoin.Slack,

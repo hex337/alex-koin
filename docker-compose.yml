@@ -2,6 +2,7 @@ version: '3'
 
 services:
   api:
+    tty: true
     build:
       context: .
       dockerfile: ./Dockerfile
