@@ -69,7 +69,7 @@ defmodule AlexKoin.SlackRtm do
     if Regex.match?(regex, text) do
       %{ "slack_id" => slack_id } = Regex.named_captures(regex, text)
       user_to_check = SlackCommands.get_or_create(slack_id, slack)
-      balance = SlackCommands.get_balance(user_wallet(user_to_check))
+      balance = user_wallet(user_to_check) |> SlackCommands.get_balance
       Logger.info "#{user.first_name} is asking about #{user_to_check.first_name}'s balance.", ansi_color: :green
 
       {"#{name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
