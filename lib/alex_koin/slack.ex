@@ -1,11 +1,12 @@
 defmodule AlexKoin.SlackRtm do
+  require Logger
+  alias AlexKoin.SlackCommands
+
   @slack_module Application.get_env(
     :alex_koin, :slack_module, Slack.Sends
   )
 
   @koin_bot_id Application.get_env(:alex_koin, :koin_bot_id)
-
-  alias AlexKoin.SlackCommands
 
   def handle_close(_info, _slack, state) do
     {:ok, state}
@@ -48,6 +49,7 @@ defmodule AlexKoin.SlackRtm do
   defp message_type(text) do
     cond do
       text =~ "my balance" -> {:balance, text}
+      text =~ "balance for" -> {:other_balance, text}
       text =~ "create koin" -> {:create, text}
       text =~ "transfer" -> {:transfer, text}
       text =~ "list koins" -> {:list_koins, text}
@@ -57,9 +59,21 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp create_reply(user, message, {:balance, _text}, _slack) do
+    Logger.info "#{user.first_name} is asking about their balance.", ansi_color: :green
     balance = SlackCommands.get_balance(user_wallet(user))
-
     {"You have #{balance}:akc:.", message_ts(message)}
+  end
+  defp create_reply(user, message, {:other_balance, text}, slack) do
+    regex = ~r/<@(?<slack_id>[A-Z0-9]+)>/
+
+    if Regex.match?(regex, text) do
+      %{ "slack_id" => slack_id } = Regex.named_captures(regex, text)
+      user_to_check = SlackCommands.get_or_create(slack_id, slack)
+      balance = SlackCommands.get_balance(user_wallet(user_to_check))
+      Logger.info "#{user.first_name} is asking about #{user_to_check.first_name}'s balance.", ansi_color: :green
+
+      {"#{name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
+    end
   end
   defp create_reply(_user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}, slack) do
     regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
@@ -84,13 +98,15 @@ defmodule AlexKoin.SlackRtm do
       usr_wlt_amt = Kernel.round(user_wallet(user).balance)
       {amt, _rem} = Integer.parse(amount)
       to_user = SlackCommands.get_or_create(to_slack_id, slack)
+      Logger.info "#{user.first_name} is transfering #{amt} koin to #{to_user.first_name}.", ansi_color: :green
 
       transfer_reply(usr_wlt_amt, amt, user, to_user, message, memo, slack)
     else
       {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", message_ts(message)}
     end
   end
-  defp create_reply(_user, _message, {:leaderboard, _text}, slack) do
+  defp create_reply(user, _message, {:leaderboard, _text}, slack) do
+    Logger.info "#{user.first_name} is asking for the leaderboard.", ansi_color: :green
     limit = 5
     wallets = SlackCommands.leaderboard(limit)
 
@@ -160,11 +176,13 @@ defmodule AlexKoin.SlackRtm do
   defp get_channel_id([_|rest], user_id), do: get_channel_id(rest, user_id)
 
   defp leaderboard_text_for_wallet(wallet, slack) do
-    case Map.fetch(slack.users, wallet.user.slack_id) do
-      :error ->
-        "#{wallet.balance} :akc: - #{wallet.user.slack_id}"
-      {:ok, user_info} ->
-        "#{wallet.balance} :akc: - #{name_to_display(user_info)}"
+    "#{wallet.balance} :akc: - #{name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"
+  end
+
+  defp name_to_display_from_slack_id(slack_id, profiles) do
+    case Map.fetch(profiles, slack_id) do
+      :error -> ""
+      {:ok, user_info} -> name_to_display(user_info)
     end
   end
 

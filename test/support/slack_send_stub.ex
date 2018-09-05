@@ -32,7 +32,7 @@ defmodule AlexKoin.Test.SlackSendStub do
 
   defp respond!(fun_name, list_of_args) do
     table = @ets
-    candidate_matches = :ets.tab2list(table)
+    #candidate_matches = :ets.tab2list(table)
     tuple_to_test = List.to_tuple(list_of_args)
 
     # Iterate through our ets and :ets.test_ms/2 each candidate
@@ -53,7 +53,7 @@ defmodule AlexKoin.Test.SlackSendStub do
             {:ok, []} -> acc
 
             # Match found, save it and continue.
-            {:ok, element} -> [{match_args, value} | acc]
+            {:ok, _element} -> [{match_args, value} | acc]
           end
         _ -> acc
       end
@@ -76,7 +76,7 @@ defmodule AlexKoin.Test.SlackSendStub do
         value
       end
 
-      result ->
+      _result ->
         raise RuntimeError,
           "Didn't find a response for #{__MODULE__}:#{fun_name} " <>
           "with #{inspect args}"

@@ -29,8 +29,7 @@ defmodule AlexKoin.SlackCommands do
   end
 
   defp update_user_info(user, nil), do: user
-  defp update_user_info(user, user_info) do
-    %{ :profile => %{ :first_name => first_name, :last_name => last_name, :email => email }} = user_info
+  defp update_user_info(user, %{ profile: %{ first_name: first_name, last_name: last_name, email: email }}) do
     if user.first_name != first_name || user.last_name != last_name || user.email != email do
       {:ok, updated_user} = Account.update_user(user, %{first_name: first_name, last_name: last_name, email: email})
       updated_user
@@ -38,6 +37,7 @@ defmodule AlexKoin.SlackCommands do
       user
     end
   end
+  defp update_user_info(user, _user_info), do: user
 
   def get_balance(wallet) do
     wallet.balance
