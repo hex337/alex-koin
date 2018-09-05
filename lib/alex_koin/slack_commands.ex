@@ -3,6 +3,7 @@ defmodule AlexKoin.SlackCommands do
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
   alias AlexKoin.Coins.Coin
+  alias AlexKoin.Factoid
 
   # Use slack to populate name and email
   def get_or_create(slack_id, slack) do
@@ -105,9 +106,9 @@ defmodule AlexKoin.SlackCommands do
   end
 
   def fact() do
-    fact_funcs = AlexKoin.Factoids.__info__(:functions)
+    fact_funcs = Factoids.__info__(:functions)
 
     {func_name, _arity} = Enum.random(fact_funcs)
-    apply(AlexKoin.Factoids, func_name, [])
+    apply(Factoids, func_name, [])
   end
 end

@@ -3,6 +3,7 @@ defmodule AlexKoin.Coins.Coin do
 
   use Ecto.Schema
   import Ecto.Changeset
+  alias __MODULE__
 
 
   schema "coins" do
@@ -22,7 +23,7 @@ defmodule AlexKoin.Coins.Coin do
   end
 
   def for_wallet(wallet, amount) do
-    from c in AlexKoin.Coins.Coin,
+    from c in Coin,
       where: c.wallet_id == ^wallet.id,
       limit: ^amount
   end
@@ -30,7 +31,7 @@ defmodule AlexKoin.Coins.Coin do
   def count_from_date(date) do
     naive_date = DateTime.to_naive(date)
 
-    from c in AlexKoin.Coins.Coin,
+    from c in Coin,
       select: count(c.id),
       where: c.inserted_at >= ^naive_date
   end
