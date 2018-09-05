@@ -1,8 +1,8 @@
 defmodule AlexKoin.Coins.Coin do
   import Ecto.Query
-
-  use Ecto.Schema
   import Ecto.Changeset
+  use Ecto.Schema
+
   alias __MODULE__
 
 
