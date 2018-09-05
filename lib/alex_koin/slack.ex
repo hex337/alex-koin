@@ -3,7 +3,7 @@ defmodule AlexKoin.SlackRtm do
     :alex_koin, :slack_module, Slack.Sends
   )
 
-  @koin_bot_id Application.get_env(:alex_koin, :koin_bot_id)
+  @koin_bot_id Application.get_env(:alex_koin, :koin_bot_id) || ""
 
   alias AlexKoin.SlackCommands
 
