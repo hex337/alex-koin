@@ -1,5 +1,5 @@
 defmodule AlexKoin.Coins.Coin do
-  require Ecto.Query
+  import Ecto.Query
 
   use Ecto.Schema
   import Ecto.Changeset
@@ -22,8 +22,16 @@ defmodule AlexKoin.Coins.Coin do
   end
 
   def for_wallet(wallet, amount) do
-    AlexKoin.Coins.Coin
-    |> Ecto.Query.where(wallet_id: ^wallet.id)
-    |> Ecto.Query.limit(^amount)
+    from c in AlexKoin.Coins.Coin,
+      where: c.wallet_id == ^wallet.id,
+      limit: ^amount
+  end
+
+  def count_from_date(date) do
+    naive_date = DateTime.to_naive(date)
+
+    from c in AlexKoin.Coins.Coin,
+      select: count(c.id),
+      where: c.inserted_at >= ^naive_date
   end
 end

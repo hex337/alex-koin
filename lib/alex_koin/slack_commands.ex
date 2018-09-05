@@ -1,5 +1,4 @@
 defmodule AlexKoin.SlackCommands do
-  require Ecto.Query
   alias AlexKoin.Repo
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
@@ -103,5 +102,12 @@ defmodule AlexKoin.SlackCommands do
     min_balance = List.last(wallets).balance
 
     Repo.all(Wallet.by_minimum_balance(min_balance))
+  end
+
+  def fact() do
+    fact_funcs = AlexKoin.Factoids.__info__(:functions)
+
+    {func_name, _arity} = Enum.random(fact_funcs)
+    apply(AlexKoin.Factoids, func_name, [])
   end
 end

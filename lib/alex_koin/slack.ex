@@ -50,6 +50,7 @@ defmodule AlexKoin.SlackRtm do
     cond do
       text =~ "my balance" -> {:balance, text}
       text =~ "balance for" -> {:other_balance, text}
+      text =~ "fact" -> {:fact, text}
       text =~ "create koin" -> {:create, text}
       text =~ "transfer" -> {:transfer, text}
       text =~ "list koins" -> {:list_koins, text}
@@ -74,6 +75,10 @@ defmodule AlexKoin.SlackRtm do
 
       {"#{name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
     end
+  end
+  defp create_reply(_user, _message, {:fact, _text}, _slack) do
+    factoid = SlackCommands.fact()
+    {factoid, nil}
   end
   defp create_reply(_user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}, slack) do
     regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/

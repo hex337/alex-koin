@@ -20,7 +20,7 @@ defmodule AlexKoin.Mixfile do
   def application do
     [
       mod: {AlexKoin.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :timex]
     ]
   end
 
@@ -40,7 +40,8 @@ defmodule AlexKoin.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:slack, "~> 0.14.0"},
-      {:elixir_uuid, "~> 1.2"}
+      {:elixir_uuid, "~> 1.2"},
+      {:timex, "~> 3.1"}
     ]
   end
 
