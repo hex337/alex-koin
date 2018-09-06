@@ -12,7 +12,7 @@ defmodule AlexKoin.Account.User do
     field :slack_id, :string
 
     has_one :wallet, Wallet
-    has_many :coins, Coin
+    has_many :coins, Coin, foreign_key: :mined_by_id
 
     timestamps()
   end
