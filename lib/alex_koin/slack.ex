@@ -48,13 +48,13 @@ defmodule AlexKoin.SlackRtm do
 
   defp message_type(text) do
     cond do
+      text =~ "create koin" -> {:create, text}
       text =~ "my balance" -> {:balance, text}
       text =~ "balance for" -> {:other_balance, text}
-      text =~ "fact" -> {:fact, text}
-      text =~ "create koin" -> {:create, text}
       text =~ "transfer" -> {:transfer, text}
       text =~ "list koins" -> {:list_koins, text}
       text =~ "leaderboard" -> {:leaderboard, text}
+      text =~ "fact" -> {:fact, text}
       true -> {:nothing, text}
     end
   end

@@ -3,7 +3,7 @@ defmodule AlexKoin.SlackCommands do
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
   alias AlexKoin.Coins.Coin
-  alias AlexKoin.Factoid
+  alias AlexKoin.Factoids
 
   # Use slack to populate name and email
   def get_or_create(slack_id, slack) do

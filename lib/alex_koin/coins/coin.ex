@@ -1,16 +1,17 @@
 defmodule AlexKoin.Coins.Coin do
-  import Ecto.Query
-  import Ecto.Changeset
+  import Ecto.{ Changeset, Query }
   use Ecto.Schema
 
+  alias AlexKoin.Account.{ User, Wallet }
   alias __MODULE__
 
 
   schema "coins" do
     field :hash, :string
     field :origin, :string
-    field :mined_by_id, :id
-    field :wallet_id, :id
+
+    belongs_to :user, User, foreign_key: :mined_by_id
+    belongs_to :wallet, Wallet
 
     timestamps()
   end
@@ -34,5 +35,13 @@ defmodule AlexKoin.Coins.Coin do
     from c in Coin,
       select: count(c.id),
       where: c.inserted_at >= ^naive_date
+  end
+
+  def mined_since(date) do
+    naive_date = DateTime.to_naive(date)
+
+    from c in Coin,
+      where: c.inserted_at >= ^naive_date,
+      preload: :user
   end
 end

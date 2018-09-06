@@ -5,7 +5,7 @@ defmodule AlexKoin.Factoids do
   alias AlexKoin.Coins.Coin
 
   def koins_this_week do
-    count = Timex.shift(Timex.now, days: -7)
+    count = one_week_ago()
             |> Coin.count_from_date
             |> Repo.one
 
@@ -18,5 +18,20 @@ defmodule AlexKoin.Factoids do
             |> Repo.one
 
     "Chime has mined total of #{count} koins since the dawn of Koin." 
+  end
+
+  def random_mine_message_from_the_last_week do
+    coin = one_week_ago()
+           |> Coin.mined_since
+           |> Repo.all
+           |> Enum.random
+
+    {:ok, relative_str} = coin.inserted_at |> Timex.format("{relative}", :relative)
+
+    "#{coin.user.first_name} mined a koin #{relative_str} for '#{coin.origin}'."
+  end
+
+  defp one_week_ago do
+    Timex.now |> Timex.shift(days: -7)
   end
 end
