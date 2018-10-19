@@ -29,6 +29,11 @@ defmodule AlexKoin.Coins.Coin do
       limit: ^amount
   end
 
+  def for_wallet(wallet) do
+    from c in Coin,
+      where: c.wallet_id == ^wallet.id
+  end
+
   def count_from_date(date) do
     naive_date = DateTime.to_naive(date)
 

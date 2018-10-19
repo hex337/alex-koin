@@ -1,4 +1,6 @@
 defmodule AlexKoin.SlackCommands do
+  require Logger
+
   alias AlexKoin.Repo
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
@@ -59,7 +61,7 @@ defmodule AlexKoin.SlackCommands do
     {:ok, coin} = Repo.insert(new_coin)
 
     # Now we create the initial transaction to set the coin up
-    transfer_coin(coin, user_wallet, user_wallet, "Initial creation.")
+    {:ok, _txn} = transfer_coin(coin, user_wallet, user_wallet, "Initial creation.")
 
     coin
   end
@@ -73,7 +75,7 @@ defmodule AlexKoin.SlackCommands do
   end
 
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
-    #Logger.info "Transfering coin #{coin.hash} from #{from_wallet} to #{to_wallet}."
+    Logger.info "Transfering koin #{coin.id} from #{from_wallet.id} to #{to_wallet.id}", ansi_color: :green
 
     txn = %{
         amount: 1.0,
@@ -85,16 +87,18 @@ defmodule AlexKoin.SlackCommands do
     |> Transaction.changeset()
     |> Repo.insert!()
 
+    # Pull the to_wallet again in case what we have is stale
+    to_wallet = Wallet |> Repo.get_by(id: to_wallet.id)
     # update the balance
-
     AlexKoin.Account.update_wallet(to_wallet, %{balance: to_wallet.balance + 1})
     AlexKoin.Coins.update_coin(coin, %{wallet_id: to_wallet.id})
 
     if from_wallet.id != to_wallet.id do # if we're not creating a coin, decrement the from_wallet
+      from_wallet = Wallet |> Repo.get_by(id: from_wallet.id)
       AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - 1})
     end
 
-    txn
+    {:ok, txn}
   end
 
   # Returns wallet objects with the users preloaded.
@@ -110,5 +114,25 @@ defmodule AlexKoin.SlackCommands do
 
     {func_name, _arity} = Enum.random(fact_funcs)
     apply(Factoids, func_name, [])
+  end
+
+  def reconcile() do
+    Account.list_wallets
+    |> Enum.each(fn(w) -> reconcile_wallet(w) end)
+  end
+
+  defp reconcile_wallet(wallet) do
+    wallet_user = User |> Repo.get_by(id: wallet.user_id)
+
+    coins = Repo.all(Coin.for_wallet(wallet))
+    coin_count = Enum.count(coins)
+
+    if coin_count != wallet.balance do
+      Logger.info "#{wallet_user.first_name}'s wallet balance is: #{wallet.balance}", ansi_color: :green
+      Logger.info "Wallet has #{coin_count} koins associated with it.", ansi_color: :green
+
+      Logger.info "Updating wallet balance from #{wallet.balance} to #{coin_count}."
+      AlexKoin.Account.update_wallet(wallet, %{balance: coin_count})
+    end
   end
 end
