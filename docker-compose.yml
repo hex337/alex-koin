@@ -3,6 +3,7 @@ version: '3'
 services:
   api:
     tty: true
+    stdin_open: true
     build:
       context: .
       dockerfile: ./Dockerfile

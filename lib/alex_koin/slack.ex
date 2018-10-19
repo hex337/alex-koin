@@ -48,12 +48,15 @@ defmodule AlexKoin.SlackRtm do
 
   defp message_type(text) do
     cond do
+      text =~ "create koin" -> {:create, text}
       text =~ "my balance" -> {:balance, text}
       text =~ "balance for" -> {:other_balance, text}
-      text =~ "create koin" -> {:create, text}
       text =~ "transfer" -> {:transfer, text}
       text =~ "list koins" -> {:list_koins, text}
       text =~ "leaderboard" -> {:leaderboard, text}
+      text =~ "fact" -> {:fact, text}
+      text =~ "reconcile" -> {:reconcile, text}
+      text =~ "announce" -> {:announce, text}
       true -> {:nothing, text}
     end
   end
@@ -74,6 +77,10 @@ defmodule AlexKoin.SlackRtm do
 
       {"#{name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
     end
+  end
+  defp create_reply(_user, _message, {:fact, _text}, _slack) do
+    factoid = SlackCommands.fact()
+    {factoid, nil}
   end
   defp create_reply(_user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}, slack) do
     regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
@@ -115,6 +122,28 @@ defmodule AlexKoin.SlackRtm do
                   |> Enum.join("\n")
 
     {leader_text, nil}
+  end
+  defp create_reply(_user = %{slack_id: "U8BBZEB35"}, _message, {:reconcile, _text}, _slack) do
+    Logger.info "Reconciling wallet balances...", ansi_color: :green
+
+    SlackCommands.reconcile
+
+    {"Finished reconciling wallets.", nil}
+  end
+  defp create_reply(_user = %{slack_id: "U8BBZEB35"}, _message, {:announce, text}, slack) do
+    regex = ~r/announce (?<msg>.*)/
+
+    if Regex.match?(regex, text) do
+      %{"msg" => msg} = Regex.named_captures(regex, text)
+      Logger.info "Sending announcement: '#{msg}'", ansi_color: :green
+      channel = channel_id_for_name("alex_koin", slack.channels)
+
+      if channel do
+        send_raw_message({msg, nil}, channel, slack)
+      end
+    end
+
+    {"Announcement sent.", nil}
   end
   defp create_reply(user, _, {:list_koins, _text}, _slack), do: SlackCommands.get_coins(user_wallet(user))
   defp create_reply(_user,_,_,_), do: nil
@@ -165,6 +194,15 @@ defmodule AlexKoin.SlackRtm do
       send_raw_message({notify_msg, nil}, dm_channel, slack)
     end
   end
+
+  defp channel_id_for_name(name, channels) do
+    Enum.into(channels, [])
+    |> get_channel_id_from_name(name)
+  end
+
+  defp get_channel_id_from_name([], _), do: nil
+  defp get_channel_id_from_name([{id, %{name: found_name}} | _rest], name) when name == found_name, do: id
+  defp get_channel_id_from_name([_|rest], name), do: get_channel_id_from_name(rest, name)
 
   defp dm_channel_for_slack_id(slack_id, ims) do
     Enum.into(ims, [])

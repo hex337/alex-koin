@@ -4,12 +4,15 @@ defmodule AlexKoin.Account.Wallet do
   use Ecto.Schema
   import Ecto.Changeset
   alias AlexKoin.Account.User
+  alias AlexKoin.Coins.Coin
+  alias __MODULE__
 
 
   schema "wallets" do
     field :balance, :float
 
     belongs_to :user, User
+    has_many :coins, Coin, foreign_key: :mined_by_id
 
     timestamps()
   end
@@ -22,14 +25,14 @@ defmodule AlexKoin.Account.Wallet do
   end
 
   def by_balance(limit) do
-    from w in AlexKoin.Account.Wallet,
+    from w in Wallet,
       order_by: [desc: w.balance],
       limit: ^limit,
       preload: :user
   end
 
   def by_minimum_balance(balance) do
-    from w in AlexKoin.Account.Wallet,
+    from w in Wallet,
       where: w.balance >= ^balance,
       order_by: [desc: w.balance],
       preload: :user
