@@ -1,6 +1,12 @@
-.PHONY: assets bash build deps help iex logs migrate ps restart seed setup_db stop test up
+.PHONY: assets bash build deps help iex logs migrate ps restart seed setup_db stop test up publish
 
-SERVICE?=api
+SERVICE ?= api
+
+APP_NAME ?= `grep 'app:' mix.exs | sed -e 's/\[//g' -e 's/ //g' -e 's/app://' -e 's/[:,]//g'`
+APP_VSN ?= `grep 'version:' mix.exs | cut -d '"' -f2`
+BUILD ?= `git rev-parse --short HEAD`
+SLACK_TOKEN ?= `grep 'SLACK_TOKEN=' .env | cut -d '=' -f2`
+KOIN_BOT_ID ?= `grep 'KOIN_BOT_ID=' .env | cut -d '=' -f2`
 
 default: help
 
@@ -28,6 +34,9 @@ migrate: #: Run migrations
 ps: #: Show running processes
 	docker-compose ps
 
+soft-restart: #: Works on a running container
+	docker-compose exec -e SLACK_TOKEN=$(SLACK_TOKEN) -e KOIN_BOT_ID=$(KOIN_BOT_ID) api mix deps.clean certifi; mix deps.get; mix run --no-halt
+
 restart: #: Restart the service container
 	docker-compose restart $(SERVICE)
 
@@ -46,8 +55,16 @@ test: #: Run tests
 up: #: Start containers
 	docker-compose up -d
 
-down:
+down: #: Bring down the service
 	docker-compose down
+
+docker-build: #: Build a container for deployment
+	docker build --build-arg APP_NAME=$(APP_NAME) \
+	  --build-arg APP_VSN=$(APP_VSN) \
+	  --build-arg SLACK_TOKEN=$(SLACK_TOKEN) \
+	  --build-arg KOIN_BOT_ID=$(KOIN_BOT_ID) \
+	  -t $(APP_NAME):$(APP_VSN)-$(BUILD) \
+	  -t $(APP_NAME):latest .
 
 help: #: Show help topics
 	@grep "#:" Makefile | grep -v "@grep" | sed "s/.*:\([A-Za-z_ -]*\):.*#\(.*\)/$$(tput setaf 3)\1$$(tput sgr0)\2/g" | sort

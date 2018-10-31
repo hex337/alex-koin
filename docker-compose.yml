@@ -2,27 +2,18 @@ version: '3'
 
 services:
   api:
-    tty: true
-    stdin_open: true
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-      args:
-        - SLACK_TOKEN=${SLACK_TOKEN}
-        - KOIN_BOT_ID=${KOIN_BOT_ID}
-    command: "mix run --no-halt"
+    image: "alex_koin:latest"
+    env_file:
+      - config/docker.env
     ports:
       - "4000:4000"
-    volumes:
-      - .:/usr/src/alex-koin
     depends_on:
       - db
-    environment:
-      SLACK_TOKEN: "${SLACK_TOKEN}"
-      KOIN_BOT_ID: "${KOIN_BOT_ID}"
 
   db:
     image: "postgres:9.6.3"
+    env_file:
+      - config/docker.env
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
