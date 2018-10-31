@@ -15,4 +15,7 @@ erl_crash.dump
 # variables.
 /config/*.secret.exs
 
+.hex
+
 .env*
+config/*.env*
