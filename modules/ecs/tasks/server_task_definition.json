@@ -1,0 +1,40 @@
+[
+  {
+    "name": "server",
+    "image": "${image}",
+    "portMappings": [
+      {
+        "containerPort": 4000,
+        "hostPort": 80
+      }
+    ],
+    "memory": 300,
+    "networkMode": "awsvpc",
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${log_group}",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "web"
+      }
+    },
+    "environment": [
+      {
+        "name": "MIX_ENV",
+        "value": "prod"
+      },
+      {
+        "name": "DATABASE_URL",
+        "value": "${database_url}"
+      },
+      {
+        "name": "SECRET_KEY_BASE",
+        "value": "${secret_key_base}"
+      },
+      {
+        "name": "PORT",
+        "value": "4000"
+      }
+    ]
+  }
+]

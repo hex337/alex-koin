@@ -1,0 +1,30 @@
+[
+  {
+    "name": "db-migrate",
+    "image": "${image}",
+    "command": ["mix", "ecto.migrate"],
+    "memory": 300,
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "${log_group}",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "db_migrate"
+      }
+    },
+    "environment": [
+      {
+        "name": "MIX_ENV",
+        "value": "prod"
+      },
+      {
+        "name": "DATABASE_URL",
+        "value": "${database_url}"
+      },
+      {
+        "name": "SECRET_KEY_BASE",
+        "value": "${secret_key_base}"
+      }
+    ]
+  }
+]
