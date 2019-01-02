@@ -109,6 +109,45 @@ defmodule AlexKoin.SlackCommands do
     Repo.all(Wallet.by_minimum_balance(min_balance))
   end
 
+  def leaderboard_v2(limit) do
+    mined_mult = 2.0
+    transfered_mult = 0.25
+    received_mult = 0.5
+
+    start_of_week = Timex.beginning_of_week(Timex.now, :sun)
+
+    # First, get all koins mined in the last 7 days
+    mined_koins = Repo.all(Coin.mined_since(start_of_week))
+    # Get all transfers for the last 7 days
+    transactions = Repo.all(Account.transactions_since(start_of_week))
+
+    # Create a map of User id's to number of koins mined
+    mined_koin_scores = mined_koins
+                        |> Enum.group_by(&(&1.mined_by_id))
+                        |> Enum.map(fn {user_id, koins_ids} -> {user_id, Enum.count(koins_ids) * mined_mult} end)
+                        |> Enum.into(%{})
+    transfered_koin_scores = transactions
+                             |> Enum.group_by(&(&1.from_id))
+                             |> Enum.map(fn {user_id, from_ids} -> {user_id, Enum.count(Enum.uniq(from_ids)) * transfered_mult} end)
+                             |> Enum.into(%{})
+    received_koin_scores = transactions
+                           |> Enum.group_by(&(&1.to_id))
+                           |> Enum.map(fn {user_id, to_ids} -> {user_id, Enum.count(Enum.uniq(to_ids)) * received_mult} end)
+                           |> Enum.into(%{})
+
+    # Now we go through and add up the scores:
+    scores = mined_koin_scores
+             |> Map.merge(transfered_koin_scores, fn _k, score1, score2 -> score1 + score2 end)
+             |> Map.merge(received_koin_scores, fn _k, score1, score2 -> score1 + score2 end)
+             |> Map.to_list
+             |> Enum.sort_by(&(elem(&1, 1)), &>=/2)
+             |> Enum.slice(0, limit)
+
+    # This should give us a list like [{user_id, score}, {user_id, score}], and we want to
+    # turn that into [{user_id: id, score: score}, {user_id: id, score: score}]
+    Enum.map(scores, fn tup -> %{user_id: elem(tup, 0), score: elem(tup, 1)} end)
+  end
+
   def fact() do
     fact_funcs = Factoids.__info__(:functions)
 
