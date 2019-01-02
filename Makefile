@@ -67,4 +67,4 @@ docker-build: #: Build a container for deployment
 	  -t $(APP_NAME):latest .
 
 help: #: Show help topics
-	@grep "#:" Makefile | grep -v "@grep" | sed "s/.*:\([A-Za-z_ -]*\):.*#\(.*\)/$$(tput setaf 3)\1$$(tput sgr0)\2/g" | sort
+	@grep "#:" Makefile* | grep -v "@grep" | sort | sed "s/\([A-Za-z_ -]*\):.*#\(.*\)/$$(tput setaf 3)\1$$(tput sgr0)\2/g"

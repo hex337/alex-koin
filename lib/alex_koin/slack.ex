@@ -1,6 +1,8 @@
 defmodule AlexKoin.SlackRtm do
   require Logger
   alias AlexKoin.SlackCommands
+  alias AlexKoin.Repo
+  alias AlexKoin.Account.User
 
   @slack_module Application.get_env(
     :alex_koin, :slack_module, Slack.Sends
@@ -115,10 +117,17 @@ defmodule AlexKoin.SlackRtm do
   defp create_reply(user, _message, {:leaderboard, _text}, slack) do
     Logger.info "#{user.first_name} is asking for the leaderboard.", ansi_color: :green
     limit = 5
-    wallets = SlackCommands.leaderboard(limit)
+    #wallets = SlackCommands.leaderboard(limit)
 
-    leader_text = wallets
-                  |> Enum.map(fn(w) -> leaderboard_text_for_wallet(w, slack) end)
+    # leader_text = wallets
+    #               |> Enum.map(fn(w) -> leaderboard_text_for_wallet(w, slack) end)
+    #               |> Enum.join("\n")
+
+    # Map of form [%{user_id: id, score: score}, ...]
+    board = SlackCommands.leaderboard_v2(limit)
+
+    leader_text = board
+                  |> Enum.map(fn(map) -> leaderboard_text(map, slack) end)
                   |> Enum.join("\n")
 
     {leader_text, nil}
@@ -149,7 +158,7 @@ defmodule AlexKoin.SlackRtm do
   defp create_reply(_user,_,_,_), do: nil
 
   defp user_wallet(_user = %{id: user_id}) do
-    AlexKoin.Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
+    Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
   end
   defp message_ts(%{channel: "D" <> _rest}), do: nil
   defp message_ts(%{thread_ts: message_ts}), do: message_ts
@@ -212,6 +221,13 @@ defmodule AlexKoin.SlackRtm do
   defp get_channel_id([], _), do: nil
   defp get_channel_id([{id, %{user: uid}} | _rest], user_id) when uid == user_id, do: id
   defp get_channel_id([_|rest], user_id), do: get_channel_id(rest, user_id)
+
+  defp leaderboard_text(map, slack) do
+    {:ok, user_id} = Map.fetch(map, :user_id)
+    {:ok, score} = Map.fetch(map, :score)
+    user = Repo.get_by(User, id: user_id)
+    "#{score} points :akc: - #{name_to_display_from_slack_id(user.slack_id, slack.users)}"
+  end
 
   defp leaderboard_text_for_wallet(wallet, slack) do
     "#{wallet.balance} :akc: - #{name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"

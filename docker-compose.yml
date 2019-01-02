@@ -2,7 +2,10 @@ version: '3'
 
 services:
   api:
-    image: "alex_koin:latest"
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+    image: alex_koin:latest
     env_file:
       - config/docker.env
     ports:
@@ -11,7 +14,7 @@ services:
       - db
 
   db:
-    image: "postgres:9.6.3"
+    image: postgres:9.6.3
     env_file:
       - config/docker.env
     volumes:

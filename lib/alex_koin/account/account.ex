@@ -293,4 +293,13 @@ defmodule AlexKoin.Account do
   def change_transaction(%Transaction{} = transaction) do
     Transaction.changeset(transaction, %{})
   end
+
+  # Doesn't include initial mining transactions
+  def transactions_since(date) do
+    naive_date = DateTime.to_naive(date)
+
+    from t in Transaction,
+      where: t.inserted_at >= ^naive_date and t.from_id != t.to_id,
+      preload: [:sender, :recipient]
+  end
 end

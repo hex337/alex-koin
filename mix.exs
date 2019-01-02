@@ -4,7 +4,7 @@ defmodule AlexKoin.Mixfile do
   def project do
     [
       app: :alex_koin,
-      version: "0.0.1",
+      version: "1.0.0",
       elixir: "~> 1.4",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
@@ -56,7 +56,7 @@ defmodule AlexKoin.Mixfile do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      "test": ["ecto.create --quiet", "ecto.migrate", "test"]
+      test: ["ecto.create --quiet", "ecto.migrate", "test"]
     ]
   end
 end

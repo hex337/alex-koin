@@ -1,0 +1,50 @@
+FROM elixir:1.7.2
+
+ARG SLACK_TOKEN
+ARG KOIN_BOT_ID
+
+ARG APP_NAME
+ARG APP_VSN
+ARG MIX_ENV=prod
+ARG SKIP_PHOENIX=true
+ARG PHOENIX_SUBDIR=.
+
+ENV APP_NAME=${APP_NAME} \
+    APP_VSN=${APP_VSN} \
+    HOME=/usr/src/alex-koin \
+    KOIN_BOT_ID=${KOIN_BOT_ID} \
+    MIX_ENV=${MIX_ENV} \
+    SLACK_TOKEN=${SLACK_TOKEN}
+
+WORKDIR $HOME
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y \
+      build-essential \
+      inotify-tools \
+      git \
+      nodejs \
+      yarn \
+      postgresql-client && \
+    mix local.rebar --force && \
+    mix local.hex --force
+
+COPY . $HOME
+
+COPY ./docker-entrypoint.sh /
+RUN chmod +x /docker-entrypoint.sh
+ENTRYPOINT ["/docker-entrypoint.sh"]
+
+RUN mix do deps.get, deps.compile, compile
+
+# This is for a PHOENIX frontend
+RUN if [ ! "$SKIP_PHOENIX" = "true" ]; then \
+  cd ${PHOENIX_SUBDIR}/assets && \
+  yarn install && \
+  yarn deploy && \
+  cd .. && \
+  mix phx.digest; \
+fi
+
+EXPOSE 4000
