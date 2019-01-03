@@ -226,7 +226,7 @@ defmodule AlexKoin.SlackRtm do
     {:ok, user_id} = Map.fetch(map, :user_id)
     {:ok, score} = Map.fetch(map, :score)
     user = Repo.get_by(User, id: user_id)
-    "#{score} points :akc: - #{name_to_display_from_slack_id(user.slack_id, slack.users)}"
+    "#{score} points :star: - #{name_to_display_from_slack_id(user.slack_id, slack.users)}"
   end
 
   defp leaderboard_text_for_wallet(wallet, slack) do
