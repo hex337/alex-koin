@@ -115,8 +115,14 @@ defmodule AlexKoin.SlackRtm do
     end
   end
   defp create_reply(user, _message, {:leaderboard, _text}, slack) do
-    Logger.info "#{user.first_name} is asking for the leaderboard.", ansi_color: :green
+    regex = ~r/leaderboard (?<limit>[0-9]+)/
+
     limit = 5
+    if Regex.match(regex, text) do
+      %{"limit" => limit} = Regex.named_captures(regex, text)
+    end
+
+    Logger.info "#{user.first_name} is asking for the top #{limit} leaderboard.", ansi_color: :green
     #wallets = SlackCommands.leaderboard(limit)
 
     # leader_text = wallets
