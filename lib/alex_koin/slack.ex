@@ -114,13 +114,8 @@ defmodule AlexKoin.SlackRtm do
       {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", message_ts(message)}
     end
   end
-  defp create_reply(user, _message, {:leaderboard, _text}, slack) do
-    regex = ~r/leaderboard (?<limit>[0-9]+)/
-
-    limit = 5
-    if Regex.match(regex, text) do
-      %{"limit" => limit} = Regex.named_captures(regex, text)
-    end
+  defp create_reply(user, _message, {:leaderboard, text}, slack) do
+    limit = fetch_limit_from_input(text)
 
     Logger.info "#{user.first_name} is asking for the top #{limit} leaderboard.", ansi_color: :green
     #wallets = SlackCommands.leaderboard(limit)
@@ -250,4 +245,18 @@ defmodule AlexKoin.SlackRtm do
   defp name_to_display(%{ profile: %{ real_name: real_name } }) when real_name != "", do: real_name
   defp name_to_display(%{ profile: _profile }), do: "" # Catch all if we don't have what we need
   defp name_to_display(nil), do: ""
+
+  defp fetch_limit_from_input(text) when text == "leaderboard", do: 5
+  defp fetch_limit_from_input(text) do
+    regex = ~r/leaderboard (?<limit>[0-9]+)/
+
+    if Regex.match?(regex, text) do
+      %{"limit" => input_limit} = Regex.named_captures(regex, text)
+      {limit, _rem} = Integer.parse(input_limit)
+
+      limit
+    else
+      5
+    end
+  end
 end
