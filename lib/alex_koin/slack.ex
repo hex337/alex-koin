@@ -59,6 +59,7 @@ defmodule AlexKoin.SlackRtm do
       text =~ "fact" -> {:fact, text}
       text =~ "reconcile" -> {:reconcile, text}
       text =~ "announce" -> {:announce, text}
+      text =~ "display" -> {:display, text}
       true -> {:nothing, text}
     end
   end
@@ -140,6 +141,16 @@ defmodule AlexKoin.SlackRtm do
 
     {"Finished reconciling wallets.", nil}
   end
+  defp create_reply(user, message, {:display, text}, slack) do
+    regex = ~r/display (?<msg>.*)/
+
+    if Regex.match?(regex, text) do
+      %{"msg" => msg} = Regex.named_captures(regex, text)
+      usr_wlt_amt = Kernel.round(user_wallet(user).balance)
+
+      display_message(usr_wlt_amt, user, message, msg, slack)
+    end
+  end
   defp create_reply(_user = %{slack_id: "U8BBZEB35"}, _message, {:announce, text}, slack) do
     regex = ~r/announce (?<msg>.*)/
 
@@ -185,6 +196,17 @@ defmodule AlexKoin.SlackRtm do
     SlackCommands.transfer(user_wallet(user), user_wallet(to_user), amt, memo)
     notify_receiver(user, to_user, amt, memo, slack)
     {"Transfered koin.", message_ts(message)}
+  end
+
+  defp display_message(amt, _user, message, _text, _slack) when amt < 1, do: {"Insufficient koin.", message_ts(message)}
+  defp display_message(_amt, user, message, text, slack) do
+    # Spend a koin first, then display
+    SlackCommands.remove_coins(user_wallet(user), 1)
+    channel = "GKGAM9DD1"
+
+    send_raw_message({text, nil}, channel, slack)
+
+    {"A koin well spent, no doubt.", message_ts(message)}
   end
 
   defp notify_creator(creator, reason, slack) do
