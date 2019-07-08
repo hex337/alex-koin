@@ -66,7 +66,7 @@ defmodule AlexKoin.SlackRtm do
   defp create_reply(user, message, {:balance, _text}, _slack) do
     Logger.info "#{user.first_name} is asking about their balance.", ansi_color: :green
     balance = SlackCommands.get_balance(user_wallet(user))
-    {"You have #{balance}:akc:.", message_ts(message)}
+    {"You have #{balance} :akc:.", message_ts(message)}
   end
   defp create_reply(user, message, {:other_balance, text}, slack) do
     regex = ~r/<@(?<slack_id>[A-Z0-9]+)>/
