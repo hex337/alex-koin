@@ -4,6 +4,7 @@ defmodule AlexKoin.SlackCommands do
   alias AlexKoin.Repo
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
+  alias AlexKoin.Coins
   alias AlexKoin.Coins.Coin
   alias AlexKoin.Factoids
 
@@ -64,6 +65,13 @@ defmodule AlexKoin.SlackCommands do
     {:ok, _txn} = transfer_coin(coin, user_wallet, user_wallet, "Initial creation.")
 
     coin
+  end
+
+  def remove_coins(from_wallet, amount) do
+    coins = Repo.all(Coin.for_wallet(from_wallet, amount))
+    Enum.each(coins, fn(c) -> Coins.delete_coin(c) end)
+    
+    AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - amount})
   end
 
   def transfer(from_wallet, to_wallet, amount, memo) do

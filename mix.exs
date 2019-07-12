@@ -41,7 +41,7 @@ defmodule AlexKoin.Mixfile do
       {:cowboy, "~> 1.0"},
       {:slack, "~> 0.15.0"},
       {:elixir_uuid, "~> 1.2"},
-      {:timex, "~> 3.1"},
+      {:timex, "~> 3.5"},
       {:distillery, "~> 2.0"}
     ]
   end
