@@ -8,7 +8,7 @@ defmodule AlexKoin.SlackTest do
     end
 
     test "responds to balance messages" do
-      json = "{\"type\":\"message\",\"thread_ts\":\"some thread thingy\",\"text\":\"You have 0.0:akc:.\",\"channel\":\"some channel\"}"
+      json = "{\"type\":\"message\",\"thread_ts\":\"some thread thingy\",\"text\":\"You have 0.0 :akc:.\",\"channel\":\"some channel\"}"
       AlexKoin.Test.SlackSendStub.respond_to(:send_raw, [json, %{}], false)
       slack_message = %{
         type: "message",

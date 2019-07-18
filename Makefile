@@ -1,4 +1,4 @@
-.PHONY: assets bash build deps help iex logs migrate ps restart seed setup_db stop test up publish
+.PHONY: assets bash build deps help iex logs migrate ps restart seed setup_db stop test up publish db_dump release
 
 SERVICE ?= api
 
@@ -57,6 +57,12 @@ up: #: Start containers
 
 down: #: Bring down the service
 	docker-compose down
+
+db_dump: #: Dump the current database
+	docker-compose exec db pg_dump -U postgres --column-inserts --data-only alex_koin_dev > akc_backup
+
+release: #: Build a distillery release
+	docker-compose exec -e MIX_ENV=prod $(SERVICE) mix distillery.release --env=prod
 
 docker-build: #: Build a container for deployment
 	docker build --build-arg APP_NAME=$(APP_NAME) \
