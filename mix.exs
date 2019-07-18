@@ -5,7 +5,7 @@ defmodule AlexKoin.Mixfile do
     [
       app: :alex_koin,
       version: "1.0.0",
-      elixir: "~> 1.4",
+      elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
       start_permanent: Mix.env == :prod,
@@ -42,7 +42,7 @@ defmodule AlexKoin.Mixfile do
       {:slack, "~> 0.15.0"},
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.5"},
-      {:distillery, "~> 2.0"}
+      {:distillery, "~> 2.1"}
     ]
   end
 

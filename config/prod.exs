@@ -25,6 +25,13 @@ config :alex_koin, AlexKoinWeb.Endpoint,
 # Do not print debug messages in production
 config :logger, level: :info
 
+config :alex_koin, AlexKoin.Repo,
+  adapter: Ecto.Adapters.Postgres,
+  url: "${DATABASE_URL}",
+  database: "",
+  ssl: true,
+  pool_size: 2
+
 # ## SSL Support
 #
 # To get SSL working, you will need to add the `https` key
