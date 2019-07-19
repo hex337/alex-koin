@@ -30,7 +30,7 @@ config :alex_koin, AlexKoin.Repo,
   url: "${DATABASE_URL}",
   database: "",
   ssl: true,
-  pool_size: 2
+  pool_size: 1
 
 # ## SSL Support
 #
