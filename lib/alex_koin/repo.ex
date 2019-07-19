@@ -1,5 +1,7 @@
 defmodule AlexKoin.Repo do
-  use Ecto.Repo, otp_app: :alex_koin
+  use Ecto.Repo,
+    otp_app: :alex_koin,
+    adapter: Ecto.Adapters.Postgres
 
   @doc """
   Dynamically loads the repository url from the
