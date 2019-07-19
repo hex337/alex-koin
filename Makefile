@@ -62,7 +62,7 @@ db_dump: #: Dump the current database
 	docker-compose exec db pg_dump -U postgres --column-inserts --data-only alex_koin_dev > akc_backup
 
 release: #: Build a distillery release
-	docker-compose exec -e MIX_ENV=prod $(SERVICE) mix distillery.release --env=prod
+	docker-compose exec -e MIX_ENV=prod $(SERVICE) mix release --env=prod
 
 docker-build: #: Build a container for deployment
 	docker build --build-arg APP_NAME=$(APP_NAME) \
