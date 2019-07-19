@@ -4,7 +4,7 @@ defmodule AlexKoin.Mixfile do
   def project do
     [
       app: :alex_koin,
-      version: "1.0.1",
+      version: "2.0.0",
       elixir: "~> 1.7",
       elixirc_paths: elixirc_paths(Mix.env),
       compilers: [:phoenix, :gettext] ++ Mix.compilers,
@@ -33,12 +33,13 @@ defmodule AlexKoin.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.3.3"},
+      {:phoenix, "~> 1.4.9"},
       {:phoenix_pubsub, "~> 1.0"},
-      {:phoenix_ecto, "~> 3.2"},
+      {:phoenix_ecto, "~> 4.0"},
+      {:ecto_sql, "~> 3.1.6"},
       {:postgrex, ">= 0.0.0"},
       {:gettext, "~> 0.11"},
-      {:cowboy, "~> 1.0"},
+      {:plug_cowboy, "~> 2.0"},
       {:slack, "~> 0.15.0"},
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.5"},

@@ -1,7 +1,8 @@
 defmodule AlexKoinWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :alex_koin
 
-  socket "/socket", AlexKoinWeb.UserSocket
+  socket "/socket", AlexKoinWeb.UserSocket,
+    websocket: true
 
   # Serve at "/" the static files from "priv/static" directory.
   #
