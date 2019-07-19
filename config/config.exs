@@ -5,6 +5,8 @@
 # is restricted to this project.
 use Mix.Config
 
+config :phoenix, :json_library, Poison
+
 # General application configuration
 config :alex_koin,
   ecto_repos: [AlexKoin.Repo],
