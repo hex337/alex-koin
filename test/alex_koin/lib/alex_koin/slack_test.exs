@@ -62,6 +62,21 @@ defmodule AlexKoin.SlackTest do
       assert SlackRtm.handle_event(slack_message, %{users: %{}, ims: %{}}, %{})
     end
 
+    test "responds to create message when you are not admin" do
+      json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"Created a new coin: uuid here with origin: 'thingy'\",\"channel\":\"some channel\"}"
+      AlexKoin.Test.SlackSendStub.respond_to(:send_raw, [json, %{}], false)
+
+      slack_message = %{
+        type: "message",
+        text: "<@UC37P4L4Y> create koin <@U12345> for thingy",
+        user: "U8BBZEB35",
+        ts: "some thread thingy",
+        channel: "some channel"
+      }
+
+      assert SlackRtm.handle_event(slack_message, %{users: %{}, ims: %{}}, %{})
+    end
+
     test "responds to transfer messages when you don't have enough balance" do
       json = "{\"type\":\"message\",\"thread_ts\":null,\"text\":\"Not enough koin to do that transfer.\",\"channel\":\"D123456\"}"
       AlexKoin.Test.SlackSendStub.respond_to(:send_raw, [json, %{}], false)

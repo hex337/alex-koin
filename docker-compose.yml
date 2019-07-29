@@ -6,10 +6,13 @@ services:
       context: .
       dockerfile: Dockerfile.local
     image: alex_koin:latest
+    command: mix phx.server
     env_file:
       - config/docker.env
     ports:
       - "4000:4000"
+    volumes:
+      - .:/usr/src/alex-koin
     depends_on:
       - db
 
