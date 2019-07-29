@@ -50,7 +50,7 @@ stop: #: Stop running containers
 	docker-compose stop
 
 test: #: Run tests
-	docker-compose exec $(SERVICE) mix test
+	docker-compose run --rm -e MIX_ENV=test $(SERVICE) mix test
 
 up: #: Start containers
 	docker-compose up -d
@@ -59,7 +59,7 @@ down: #: Bring down the service
 	docker-compose down
 
 db_dump: #: Dump the current database
-	docker-compose exec db pg_dump -U postgres --column-inserts --data-only alex_koin_dev > akc_backup
+	docker-compose exec db pg_dump -U postgres alex_koin_dev > akc_backup
 
 release: #: Build a distillery release
 	docker-compose exec -e MIX_ENV=prod $(SERVICE) mix release --env=prod

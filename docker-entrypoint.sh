@@ -10,5 +10,4 @@ until psql -h db -U "postgres" -c '\q' 2>/dev/null; do
 done
 
 # call the command that the compose defines
-#exec "$@"
-mix phx.server
+exec "$@"

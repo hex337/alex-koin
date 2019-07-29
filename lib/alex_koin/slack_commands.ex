@@ -49,13 +49,14 @@ defmodule AlexKoin.SlackCommands do
   def get_coins(_wallet) do
   end
 
-  def create_coin(user, reason) do
+  def create_coin(user, created_by_user, reason) do
     user_wallet =  Wallet |> Repo.get_by(user_id: user.id)
 
     new_coin = %Coin{
       origin: reason,
       mined_by_id: user.id,
       hash: UUID.uuid1(),
+      created_by_user_id: created_by_user.id,
       wallet_id: user_wallet.id
     }
 
