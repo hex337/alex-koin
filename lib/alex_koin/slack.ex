@@ -88,7 +88,6 @@ defmodule AlexKoin.SlackRtm do
   end
   defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}, slack) do
     do_create_coin(user, text, slack)
-    regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
   end
   defp create_reply(user, message, {:create, text}, slack) do
     # Can create 1 koin per week per user for non-admin
