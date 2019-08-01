@@ -86,8 +86,8 @@ defmodule AlexKoin.SlackRtm do
     factoid = SlackCommands.fact()
     {factoid, nil}
   end
-  defp create_reply(user = %{slack_id: "U8BBZEB35"}, _message, {:create, text}, slack) do
-    do_create_coin(user, text, slack)
+  defp create_reply(user = %{slack_id: "U8BBZEB35"}, message, {:create, text}, slack) do
+    do_create_coin(user, text, slack, message)
   end
   defp create_reply(user, message, {:create, text}, slack) do
     # Can create 1 koin per week per user for non-admin
@@ -98,7 +98,7 @@ defmodule AlexKoin.SlackRtm do
       Logger.info "#{user.first_name} #{user.last_name} tried to create a koin, but already made one this week.", ansi_color: :green
       {"You get 1 koin per week, try again after Sunday.", message_ts(message)}
     else
-      do_create_coin(user, text, slack)
+      do_create_coin(user, text, slack, message)
     end
   end
   defp create_reply(user, message, {:transfer, text}, slack) do
@@ -283,7 +283,7 @@ defmodule AlexKoin.SlackRtm do
     end
   end
 
-  defp do_create_coin(user, text, slack) do
+  defp do_create_coin(user, text, slack, message) do
     regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
     Logger.info "#{user.first_name} #{user.last_name} creating new koin.", ansi_color: :green
 
@@ -292,15 +292,15 @@ defmodule AlexKoin.SlackRtm do
       to_user = SlackCommands.get_or_create(to_slack_id, slack)
 
       if to_user.id == user.id do
-        {"You can only create a koin for someone else.", nil}
+        {"You can only create a koin for someone else.", message_ts(message)}
       else
         coin = to_user |> SlackCommands.create_coin(user, reason)
         notify_creator(to_user, reason, slack)
 
-        {"Created a new coin: `#{coin.hash}` with origin: '#{coin.origin}'", nil}
+        {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", message_ts(message)}
       end
     else
-      {"Invalid syntax: `create koin [@user] for [reason here]`", nil}
+      {"Invalid syntax: `create koin [@user] for [reason here]`", message_ts(message)}
     end
   end
 end
