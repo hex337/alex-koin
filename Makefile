@@ -17,6 +17,7 @@ bash: #: Bash prompt on running container
 	docker-compose exec $(SERVICE) bash
 
 build: #: Build containers
+	touch config/docker.env
 	docker-compose build
 
 deps: #: Install the dependencies
