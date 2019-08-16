@@ -10,6 +10,8 @@ defmodule AlexKoin.SlackRtm do
   )
 
   @koin_bot_id Application.get_env(:alex_koin, :koin_bot_id)
+  @admin_id Application.get_env(:alex_koin, :admin_id)
+  @koin_lord_ids Application.get_env(:alex_koin, :koin_lord_ids)
 
   def handle_close(_info, _slack, state) do
     {:ok, state}
@@ -86,19 +88,19 @@ defmodule AlexKoin.SlackRtm do
     factoid = SlackCommands.fact()
     {factoid, nil}
   end
-  defp create_reply(user = %{slack_id: "U8BBZEB35"}, message, {:create, text}, slack) do
-    do_create_coin(user, text, slack, message)
+  defp create_reply(user = %{slack_id: @admin_id}, message, {:create, text}, slack) do
+    do_create_coin(user, text, slack, message, 0)
   end
   defp create_reply(user, message, {:create, text}, slack) do
     # Can create 1 koin per week per user for non-admin
     start_of_week = Timex.beginning_of_week(Timex.now, :sun)
     created_coins_this_week = Coin.created_by_user_since(user, start_of_week) |> Repo.one
 
-    if created_coins_this_week >= 1 do
-      Logger.info "#{user.first_name} #{user.last_name} tried to create a koin, but already made one this week.", ansi_color: :green
-      {"You get 1 koin per week, try again after Sunday.", message_ts(message)}
-    else
-      do_create_coin(user, text, slack, message)
+    cond do
+      koin_lord?(user) ->
+        do_create_coin(user, text, slack, message, 0)
+      true ->
+        do_create_coin(user, text, slack, message, created_coins_this_week)
     end
   end
   defp create_reply(user, message, {:transfer, text}, slack) do
@@ -283,24 +285,37 @@ defmodule AlexKoin.SlackRtm do
     end
   end
 
-  defp do_create_coin(user, text, slack, message) do
+  defp do_create_coin(user, text, slack, message, created_koin_num) do
     regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
     Logger.info "#{user.first_name} #{user.last_name} creating new koin.", ansi_color: :green
 
-    if Regex.match?(regex, text) do
-      %{"to_slack_id" => to_slack_id, "reason" => reason} = Regex.named_captures(regex, text)
-      to_user = SlackCommands.get_or_create(to_slack_id, slack)
-
-      if to_user.id == user.id do
-        {"You can only create a koin for someone else.", message_ts(message)}
-      else
-        coin = to_user |> SlackCommands.create_coin(user, reason)
-        notify_creator(to_user, reason, slack)
-
-        {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", message_ts(message)}
-      end
+    if created_koin_num >= 1 do
+      Logger.info "#{user.first_name} #{user.last_name} tried to create a koin, but already made one this week.", ansi_color: :green
+      {"You get 1 koin per week, try again after Sunday.", message_ts(message)}
     else
-      {"Invalid syntax: `create koin [@user] for [reason here]`", message_ts(message)}
+      if Regex.match?(regex, text) do
+        %{"to_slack_id" => to_slack_id, "reason" => reason} = Regex.named_captures(regex, text)
+        to_user = SlackCommands.get_or_create(to_slack_id, slack)
+
+        if !admin?(user) && to_user.id == user.id do
+          {"You can only create a koin for someone else.", message_ts(message)}
+        else
+          coin = to_user |> SlackCommands.create_coin(user, reason)
+          notify_creator(to_user, reason, slack)
+
+          {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", message_ts(message)}
+        end
+      else
+        {"Invalid syntax: `create koin [@user] for [reason here]`", message_ts(message)}
+      end
     end
+  end
+
+  defp koin_lord?(%{slack_id: slack_id}) do
+    String.match?(@koin_lord_ids, ~r/#{slack_id}/)
+  end
+
+  defp admin?(%{slack_id: slack_id}) do
+    slack_id == @admin_id
   end
 end

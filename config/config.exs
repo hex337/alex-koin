@@ -10,7 +10,9 @@ config :phoenix, :json_library, Poison
 # General application configuration
 config :alex_koin,
   ecto_repos: [AlexKoin.Repo],
-  koin_bot_id: System.get_env("KOIN_BOT_ID")
+  koin_bot_id: System.get_env("KOIN_BOT_ID"),
+  koin_lord_ids: System.get_env("KOIN_LORD_IDS"),
+  admin_id: System.get_env("ADMIN_ID")
 
 # Configures the endpoint
 config :alex_koin, AlexKoinWeb.Endpoint,
