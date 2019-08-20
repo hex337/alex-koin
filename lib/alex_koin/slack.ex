@@ -4,6 +4,7 @@ defmodule AlexKoin.SlackRtm do
   alias AlexKoin.Repo
   alias AlexKoin.Account.User
   alias AlexKoin.Coins.Coin
+  alias AlexKoin.SlackUtils
 
   @slack_module Application.get_env(
     :alex_koin, :slack_module, Slack.Sends
@@ -81,7 +82,7 @@ defmodule AlexKoin.SlackRtm do
       balance = user_wallet(user_to_check) |> SlackCommands.get_balance
       Logger.info "#{user.first_name} is asking about #{user_to_check.first_name}'s balance.", ansi_color: :green
 
-      {"#{name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
+      {"#{SlackUtils.name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
     end
   end
   defp create_reply(_user, _message, {:fact, _text}, _slack) do
@@ -160,7 +161,7 @@ defmodule AlexKoin.SlackRtm do
     if Regex.match?(regex, text) do
       %{"msg" => msg} = Regex.named_captures(regex, text)
       Logger.info "Sending announcement: '#{msg}'", ansi_color: :green
-      channel = channel_id_for_name("alex_koin", slack.channels)
+      channel = SlackUtils.channel_id_for_name("alex_koin", slack.channels)
 
       if channel do
         send_raw_message({msg, nil}, channel, slack)
@@ -175,6 +176,7 @@ defmodule AlexKoin.SlackRtm do
   defp user_wallet(_user = %{id: user_id}) do
     Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
   end
+
   defp message_ts(%{channel: "D" <> _rest}), do: nil
   defp message_ts(%{thread_ts: message_ts}), do: message_ts
   defp message_ts(%{ts: message_ts}), do: message_ts
@@ -214,7 +216,7 @@ defmodule AlexKoin.SlackRtm do
 
   defp notify_creator(creator, reason, slack) do
     msg = "You just mined an :akc_in_motion: for '#{reason}'."
-    dm_channel = dm_channel_for_slack_id(creator.slack_id, slack.ims)
+    dm_channel = SlackUtils.dm_channel_for_slack_id(creator.slack_id, slack.ims)
 
     if dm_channel do
       send_raw_message({msg, nil}, dm_channel, slack)
@@ -223,53 +225,23 @@ defmodule AlexKoin.SlackRtm do
 
   defp notify_receiver(from, to, amount, memo, slack) do
     notify_msg = "<@#{from.slack_id}> just transfered #{amount} :akc: for: '#{memo}'"
-    dm_channel = dm_channel_for_slack_id(to.slack_id, slack.ims)
+    dm_channel = SlackUtils.dm_channel_for_slack_id(to.slack_id, slack.ims)
 
     if dm_channel do
       send_raw_message({notify_msg, nil}, dm_channel, slack)
     end
   end
 
-  defp channel_id_for_name(name, channels) do
-    Enum.into(channels, [])
-    |> get_channel_id_from_name(name)
-  end
-
-  defp get_channel_id_from_name([], _), do: nil
-  defp get_channel_id_from_name([{id, %{name: found_name}} | _rest], name) when name == found_name, do: id
-  defp get_channel_id_from_name([_|rest], name), do: get_channel_id_from_name(rest, name)
-
-  defp dm_channel_for_slack_id(slack_id, ims) do
-    Enum.into(ims, [])
-    |> get_channel_id(slack_id)
-  end
-
-  defp get_channel_id([], _), do: nil
-  defp get_channel_id([{id, %{user: uid}} | _rest], user_id) when uid == user_id, do: id
-  defp get_channel_id([_|rest], user_id), do: get_channel_id(rest, user_id)
-
   defp leaderboard_text(map, slack) do
     {:ok, user_id} = Map.fetch(map, :user_id)
     {:ok, score} = Map.fetch(map, :score)
     user = Repo.get_by(User, id: user_id)
-    "#{score} points :star: - #{name_to_display_from_slack_id(user.slack_id, slack.users)}"
+    "#{score} points :star: - #{SlackUtils.name_to_display_from_slack_id(user.slack_id, slack.users)}"
   end
 
   defp leaderboard_text_for_wallet(wallet, slack) do
-    "#{wallet.balance} :akc: - #{name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"
+    "#{wallet.balance} :akc: - #{SlackUtils.name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"
   end
-
-  defp name_to_display_from_slack_id(slack_id, profiles) do
-    case Map.fetch(profiles, slack_id) do
-      :error -> ""
-      {:ok, user_info} -> name_to_display(user_info)
-    end
-  end
-
-  defp name_to_display(%{ profile: %{ display_name: display_name } }) when display_name != "", do: display_name
-  defp name_to_display(%{ profile: %{ real_name: real_name } }) when real_name != "", do: real_name
-  defp name_to_display(%{ profile: _profile }), do: "" # Catch all if we don't have what we need
-  defp name_to_display(nil), do: ""
 
   defp fetch_limit_from_input(text) when text == "leaderboard", do: 5
   defp fetch_limit_from_input(text) do
