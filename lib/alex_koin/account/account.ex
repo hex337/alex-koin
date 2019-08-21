@@ -302,4 +302,8 @@ defmodule AlexKoin.Account do
       where: t.inserted_at >= ^naive_date and t.from_id != t.to_id,
       preload: [:sender, :recipient]
   end
+
+  def wallet_for_user(%{id: user_id}) do
+    Repo.get_by(Wallet, user_id: user_id)
+  end
 end

@@ -1,4 +1,8 @@
-defmodule AlexKoin.SlackUtils do
+defmodule AlexKoin.SlackDataHelpers do
+  def message_ts(%{channel: "D" <> _rest}), do: nil
+  def message_ts(%{thread_ts: message_ts}), do: message_ts
+  def message_ts(%{ts: message_ts}), do: message_ts
+
   def channel_id_for_name(name, channels) do
     Enum.into(channels, [])
     |> get_channel_id_from_name(name)

@@ -4,7 +4,8 @@ defmodule AlexKoin.SlackRtm do
   alias AlexKoin.Repo
   alias AlexKoin.Account.User
   alias AlexKoin.Coins.Coin
-  alias AlexKoin.SlackUtils
+  alias AlexKoin.Commands
+  alias AlexKoin.SlackDataHelpers
 
   @slack_module Application.get_env(
     :alex_koin, :slack_module, Slack.Sends
@@ -69,9 +70,7 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp create_reply(user, message, {:balance, _text}, _slack) do
-    Logger.info "#{user.first_name} is asking about their balance.", ansi_color: :green
-    balance = SlackCommands.get_balance(user_wallet(user))
-    {"You have #{balance} :akc:.", message_ts(message)}
+    Commands.Balance.execute(user, message)
   end
   defp create_reply(user, message, {:other_balance, text}, slack) do
     regex = ~r/<@(?<slack_id>[A-Z0-9]+)>/
@@ -82,7 +81,7 @@ defmodule AlexKoin.SlackRtm do
       balance = user_wallet(user_to_check) |> SlackCommands.get_balance
       Logger.info "#{user.first_name} is asking about #{user_to_check.first_name}'s balance.", ansi_color: :green
 
-      {"#{SlackUtils.name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", message_ts(message)}
+      {"#{SlackDataHelpers.name_to_display_from_slack_id(slack_id, slack.users)} has #{balance} :akc:", SlackDataHelpers.message_ts(message)}
     end
   end
   defp create_reply(_user, _message, {:fact, _text}, _slack) do
@@ -116,7 +115,7 @@ defmodule AlexKoin.SlackRtm do
 
       transfer_reply(usr_wlt_amt, amt, user, to_user, message, memo, slack)
     else
-      {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", message_ts(message)}
+      {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", SlackDataHelpers.message_ts(message)}
     end
   end
   defp create_reply(user, _message, {:leaderboard, text}, slack) do
@@ -161,7 +160,7 @@ defmodule AlexKoin.SlackRtm do
     if Regex.match?(regex, text) do
       %{"msg" => msg} = Regex.named_captures(regex, text)
       Logger.info "Sending announcement: '#{msg}'", ansi_color: :green
-      channel = SlackUtils.channel_id_for_name("alex_koin", slack.channels)
+      channel = SlackDataHelpers.channel_id_for_name("alex_koin", slack.channels)
 
       if channel do
         send_raw_message({msg, nil}, channel, slack)
@@ -177,10 +176,6 @@ defmodule AlexKoin.SlackRtm do
     Repo.get_by(AlexKoin.Account.Wallet, user_id: user_id)
   end
 
-  defp message_ts(%{channel: "D" <> _rest}), do: nil
-  defp message_ts(%{thread_ts: message_ts}), do: message_ts
-  defp message_ts(%{ts: message_ts}), do: message_ts
-
   defp send_raw_message(nil, _channel, _slack) do
   end
 
@@ -195,15 +190,15 @@ defmodule AlexKoin.SlackRtm do
     |> @slack_module.send_raw(slack)
   end
 
-  defp transfer_reply(usr_amount, amt, _user, _to_user, message, _memo, _slack) when usr_amount < amt, do: {"Not enough koin to do that transfer.", message_ts(message)}
-  defp transfer_reply(_usr_amount, _amt, user, to_user, message, _memo, _slack) when user == to_user, do: {"No.", message_ts(message)}
+  defp transfer_reply(usr_amount, amt, _user, _to_user, message, _memo, _slack) when usr_amount < amt, do: {"Not enough koin to do that transfer.", SlackDataHelpers.message_ts(message)}
+  defp transfer_reply(_usr_amount, _amt, user, to_user, message, _memo, _slack) when user == to_user, do: {"No.", SlackDataHelpers.message_ts(message)}
   defp transfer_reply(_usr_amount, amt, user, to_user, message, memo, slack) do
     SlackCommands.transfer(user_wallet(user), user_wallet(to_user), amt, memo)
     notify_receiver(user, to_user, amt, memo, slack)
-    {"Transfered koin.", message_ts(message)}
+    {"Transfered koin.", SlackDataHelpers.message_ts(message)}
   end
 
-  defp display_message(amt, _user, message, _text, _slack) when amt < 1, do: {"Insufficient koin.", message_ts(message)}
+  defp display_message(amt, _user, message, _text, _slack) when amt < 1, do: {"Insufficient koin.", SlackDataHelpers.message_ts(message)}
   defp display_message(_amt, user, message, text, slack) do
     # Spend a koin first, then display
     SlackCommands.remove_coins(user_wallet(user), 1)
@@ -211,12 +206,12 @@ defmodule AlexKoin.SlackRtm do
 
     send_raw_message({text, nil}, channel, slack)
 
-    {"A koin well spent, no doubt.", message_ts(message)}
+    {"A koin well spent, no doubt.", SlackDataHelpers.message_ts(message)}
   end
 
   defp notify_creator(creator, reason, slack) do
     msg = "You just mined an :akc_in_motion: for '#{reason}'."
-    dm_channel = SlackUtils.dm_channel_for_slack_id(creator.slack_id, slack.ims)
+    dm_channel = SlackDataHelpers.dm_channel_for_slack_id(creator.slack_id, slack.ims)
 
     if dm_channel do
       send_raw_message({msg, nil}, dm_channel, slack)
@@ -225,7 +220,7 @@ defmodule AlexKoin.SlackRtm do
 
   defp notify_receiver(from, to, amount, memo, slack) do
     notify_msg = "<@#{from.slack_id}> just transfered #{amount} :akc: for: '#{memo}'"
-    dm_channel = SlackUtils.dm_channel_for_slack_id(to.slack_id, slack.ims)
+    dm_channel = SlackDataHelpers.dm_channel_for_slack_id(to.slack_id, slack.ims)
 
     if dm_channel do
       send_raw_message({notify_msg, nil}, dm_channel, slack)
@@ -236,11 +231,11 @@ defmodule AlexKoin.SlackRtm do
     {:ok, user_id} = Map.fetch(map, :user_id)
     {:ok, score} = Map.fetch(map, :score)
     user = Repo.get_by(User, id: user_id)
-    "#{score} points :star: - #{SlackUtils.name_to_display_from_slack_id(user.slack_id, slack.users)}"
+    "#{score} points :star: - #{SlackDataHelpers.name_to_display_from_slack_id(user.slack_id, slack.users)}"
   end
 
   defp leaderboard_text_for_wallet(wallet, slack) do
-    "#{wallet.balance} :akc: - #{SlackUtils.name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"
+    "#{wallet.balance} :akc: - #{SlackDataHelpers.name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"
   end
 
   defp fetch_limit_from_input(text) when text == "leaderboard", do: 5
@@ -263,22 +258,22 @@ defmodule AlexKoin.SlackRtm do
 
     if created_koin_num >= 1 do
       Logger.info "#{user.first_name} #{user.last_name} tried to create a koin, but already made one this week.", ansi_color: :green
-      {"You get 1 koin per week, try again after Sunday.", message_ts(message)}
+      {"You get 1 koin per week, try again after Sunday.", SlackDataHelpers.message_ts(message)}
     else
       if Regex.match?(regex, text) do
         %{"to_slack_id" => to_slack_id, "reason" => reason} = Regex.named_captures(regex, text)
         to_user = SlackCommands.get_or_create(to_slack_id, slack)
 
         if !admin?(user) && to_user.id == user.id do
-          {"You can only create a koin for someone else.", message_ts(message)}
+          {"You can only create a koin for someone else.", SlackDataHelpers.message_ts(message)}
         else
           coin = to_user |> SlackCommands.create_coin(user, reason)
           notify_creator(to_user, reason, slack)
 
-          {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", message_ts(message)}
+          {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", SlackDataHelpers.message_ts(message)}
         end
       else
-        {"Invalid syntax: `create koin [@user] for [reason here]`", message_ts(message)}
+        {"Invalid syntax: `create koin [@user] for [reason here]`", SlackDataHelpers.message_ts(message)}
       end
     end
   end
