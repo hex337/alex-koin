@@ -16,6 +16,7 @@ defmodule AlexKoinWeb.CoinController do
       conn
       |> put_status(:created)
       |> put_resp_header("location", coin_path(conn, :show, coin))
+      |> put_view(AlexKoinWeb.CoinView)
       |> render("show.json", coin: coin)
     end
   end
