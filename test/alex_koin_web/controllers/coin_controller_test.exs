@@ -42,7 +42,7 @@ defmodule AlexKoinWeb.CoinControllerTest do
     setup [:create_coin]
 
     test "renders coin when data is valid", %{conn: conn, user: user, wallet: wallet} do
-      attrs = @create_attrs |> Map.put(:mined_by_id, user.id) |> Map.put(:wallet_id, wallet.id)
+      attrs = @create_attrs |> Map.put(:mined_by_id, user.id) |> Map.put(:wallet_id, wallet.id) |> Map.put(:created_by_user_id, user.id)
 
       conn = post conn, coin_path(conn, :create), coin: attrs
       assert %{"id" => id} = json_response(conn, 201)["data"]
@@ -110,7 +110,7 @@ defmodule AlexKoinWeb.CoinControllerTest do
     {:ok, user: user} = create_user()
     {:ok, wallet: wallet} = create_wallet(user)
 
-    coin_attrs = @create_attrs |> Map.put(:mined_by_id, user.id) |> Map.put(:wallet_id, wallet.id)
+    coin_attrs = @create_attrs |> Map.put(:mined_by_id, user.id) |> Map.put(:wallet_id, wallet.id) |> Map.put(:created_by_user_id, user.id)
     coin = fixture(:coin, coin_attrs)
     {:ok, coin: coin, user: user, wallet: wallet}
   end
