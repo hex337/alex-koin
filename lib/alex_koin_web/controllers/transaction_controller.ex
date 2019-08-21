@@ -16,6 +16,7 @@ defmodule AlexKoinWeb.TransactionController do
       conn
       |> put_status(:created)
       |> put_resp_header("location", transaction_path(conn, :show, transaction))
+      |> put_view(AlexKoinWeb.TransactionView)
       |> render("show.json", transaction: transaction)
     end
   end
