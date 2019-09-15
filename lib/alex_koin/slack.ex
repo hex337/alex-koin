@@ -54,17 +54,18 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp message_type(text) do
+    match_text = String.downcase(text)
     cond do
-      text == "fact" -> {:fact, text}
-      text =~ "create koin" -> {:create, text}
-      text =~ "my balance" -> {:balance, text}
-      text =~ "balance for" -> {:other_balance, text}
-      text =~ "transfer" -> {:transfer, text}
-      text =~ "list koins" -> {:list_koins, text}
-      text =~ "leaderboard" -> {:leaderboard, text}
-      text =~ "announce" -> {:announce, text}
-      text =~ "display" -> {:display, text}
-      text =~ "reconcile" -> {:reconcile, text}
+      match_text == "fact" -> {:fact, text}
+      match_text =~ "create koin" -> {:create, text}
+      match_text =~ "my balance" -> {:balance, text}
+      match_text =~ "balance for" -> {:other_balance, text}
+      match_text =~ "transfer" -> {:transfer, text}
+      match_text =~ "list koins" -> {:list_koins, text}
+      match_text =~ "leaderboard" -> {:leaderboard, text}
+      match_text =~ "announce" -> {:announce, text}
+      match_text =~ "display" -> {:display, text}
+      match_text =~ "reconcile" -> {:reconcile, text}
       true -> {:nothing, text}
     end
   end
