@@ -3,7 +3,7 @@ use Mix.Config
 config :alex_koin,
   ecro_repos: [AlexKoin.Repo],
   koin_bot_id: System.get_env("KOIN_BOT_ID"),
-  koin_lord_ids: System.get_env("KOIN_LORD_IDS")
+  koin_lord_ids: System.get_env("KOIN_LORD_IDS"),
   admin_id: System.get_env("ADMIN_ID")
 
 # Configure Slack Bot
