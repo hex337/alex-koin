@@ -37,4 +37,8 @@ defmodule AlexKoin.Account.Wallet do
       order_by: [desc: w.balance],
       preload: :user
   end
+
+  def balance(wallet) do
+    wallet.balance
+  end
 end

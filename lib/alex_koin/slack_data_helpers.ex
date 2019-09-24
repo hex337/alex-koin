@@ -1,4 +1,8 @@
 defmodule AlexKoin.SlackDataHelpers do
+  @slack_module Application.get_env(
+    :alex_koin, :slack_module, Slack.Sends
+  )
+
   def message_ts(%{channel: "D" <> _rest}), do: nil
   def message_ts(%{thread_ts: message_ts}), do: message_ts
   def message_ts(%{ts: message_ts}), do: message_ts
@@ -32,4 +36,28 @@ defmodule AlexKoin.SlackDataHelpers do
   defp name_to_display(%{ profile: %{ real_name: real_name } }) when real_name != "", do: real_name
   defp name_to_display(%{ profile: _profile }), do: "" # Catch all if we don't have what we need
   defp name_to_display(nil), do: ""
+
+  def dm_user(user, slack, msg) do
+    dm_channel = dm_channel_for_slack_id(user.slack_id, slack.ims)
+    send_direct_msg({msg, nil}, slack, dm_channel)
+  end
+
+  defp send_direct_msg(_msg, _slack, nil) do
+  end
+  defp send_direct_msg(msg, slack, dm_channel) do
+    send_raw_message({msg, nil}, dm_channel, slack)
+  end
+
+  def send_raw_message(nil, _channel, _slack) do
+  end
+  def send_raw_message({text, message_ts}, channel, slack) do
+    %{
+      type: "message",
+      text: text,
+      channel: channel,
+      thread_ts: message_ts
+    }
+    |> Poison.encode!()
+    |> @slack_module.send_raw(slack)
+  end
 end

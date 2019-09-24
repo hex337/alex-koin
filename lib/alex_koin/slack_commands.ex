@@ -1,12 +1,13 @@
 defmodule AlexKoin.SlackCommands do
   require Logger
 
+  import Ecto.Query, only: [from: 2]
+
   alias AlexKoin.Repo
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
   alias AlexKoin.Coins
   alias AlexKoin.Coins.Coin
-  alias AlexKoin.Factoids
 
   # Use slack to populate name and email
   def get_or_create(slack_id, slack) do
@@ -15,7 +16,7 @@ defmodule AlexKoin.SlackCommands do
       {:ok, info} -> info
     end
 
-    user = case User |> Repo.get_by(slack_id: slack_id) do
+    user = case Repo.one from u in User, where: u.slack_id == ^slack_id, preload: [:wallet] do
       nil ->
         new_user = %User{ slack_id: slack_id }
         {:ok, user_obj} = Repo.insert(new_user)
@@ -155,13 +156,6 @@ defmodule AlexKoin.SlackCommands do
     # This should give us a list like [{user_id, score}, {user_id, score}], and we want to
     # turn that into [{user_id: id, score: score}, {user_id: id, score: score}]
     Enum.map(scores, fn tup -> %{user_id: elem(tup, 0), score: elem(tup, 1)} end)
-  end
-
-  def fact() do
-    fact_funcs = Factoids.__info__(:functions)
-
-    {func_name, _arity} = Enum.random(fact_funcs)
-    apply(Factoids, func_name, [])
   end
 
   def reconcile() do
