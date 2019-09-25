@@ -39,13 +39,10 @@ defmodule AlexKoin.SlackDataHelpers do
 
   def dm_user(user, slack, msg) do
     dm_channel = dm_channel_for_slack_id(user.slack_id, slack.ims)
-    send_direct_msg({msg, nil}, slack, dm_channel)
-  end
 
-  defp send_direct_msg(_msg, _slack, nil) do
-  end
-  defp send_direct_msg(msg, slack, dm_channel) do
-    send_raw_message({msg, nil}, dm_channel, slack)
+    if dm_channel do
+      send_raw_message({msg, nil}, dm_channel, slack)
+    end
   end
 
   def send_raw_message(nil, _channel, _slack) do
