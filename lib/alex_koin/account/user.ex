@@ -1,9 +1,11 @@
 defmodule AlexKoin.Account.User do
   use Ecto.Schema
-  import Ecto.{ Changeset, Query }
+  import Ecto.{ Changeset }
   alias AlexKoin.Account.Wallet
   alias AlexKoin.Coins.Coin
 
+  @admin_id Application.get_env(:alex_koin, :admin_id)
+  @koin_lord_ids Application.get_env(:alex_koin, :koin_lord_ids)
 
   schema "users" do
     field :email, :string
@@ -22,5 +24,13 @@ defmodule AlexKoin.Account.User do
     user
     |> cast(attrs, [:email, :first_name, :last_name, :slack_id])
     |> validate_required([:slack_id])
+  end
+
+  def koin_lord?(%{slack_id: slack_id}) do
+    String.match?(@koin_lord_ids, ~r/#{slack_id}/)
+  end
+
+  def admin?(%{slack_id: slack_id}) do
+    slack_id == @admin_id
   end
 end
