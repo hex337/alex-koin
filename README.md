@@ -6,14 +6,18 @@ A distributed highly valued virtual currency.
 
 This assumes you have docker set up.
 
-You will also need a slack bot token to test with. You can create your own slack org for free and then add a bot integration. You'll want to set up a `.env` file with your token that looks like this:
+Environment variables live in `config/docker.env`. You will want to copy the example file over, and then modify for your particular slack installation.
 
 ```
-SLACK_TOKEN=asdf-TOKEN-STUFF
-KOIN_BOT_ID=UC123456
+cp config/docker.env.example config/docker.env
 ```
 
-Docker will pick up variables defined in your `.env` when you build a container and make them available when running.
+The main things you'll have to get from slack are:
+
+* A slack token for your app so that it can connect to your slack group
+* The slack user id of the bot user
+* The slack user id for the project admin
+* Optional Koin Lord ids, a single string with a comman between slack user ids.
 
 ```sh
 make build
