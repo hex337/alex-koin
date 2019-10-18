@@ -1,5 +1,6 @@
 defmodule AlexKoin.Commands.Leaderboard do
   alias AlexKoin.Repo
+  alias AlexKoin.Account.User
   alias AlexKoin.SlackCommands
   alias AlexKoin.SlackDataHelpers
 
