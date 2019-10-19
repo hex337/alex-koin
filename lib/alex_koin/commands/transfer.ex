@@ -2,7 +2,6 @@ defmodule AlexKoin.Commands.Transfer do
   require Logger
   alias AlexKoin.SlackCommands
   alias AlexKoin.SlackDataHelpers
-  alias AlexKoin.Account
 
   def execute(user, message, slack, memo, to_slack_id, amount) do
     usr_wlt_amt = Kernel.round(user.wallet.balance)

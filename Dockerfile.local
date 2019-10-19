@@ -30,13 +30,17 @@ RUN apt-get update && \
     mix local.rebar --force && \
     mix local.hex --force
 
+COPY mix.* $HOME/
+COPY deps/* $HOME/deps/
+
+RUN mix do deps.get, deps.compile
+RUN mix compile
+
 COPY . $HOME
 
 COPY ./docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]
-
-RUN mix do deps.get, deps.compile, compile
 
 # This is for a PHOENIX frontend
 RUN if [ ! "$SKIP_PHOENIX" = "true" ]; then \

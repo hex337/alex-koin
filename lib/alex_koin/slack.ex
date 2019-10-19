@@ -2,8 +2,6 @@ defmodule AlexKoin.SlackRtm do
   require Logger
   alias AlexKoin.SlackCommands
   alias AlexKoin.Repo
-  alias AlexKoin.Account.User
-  alias AlexKoin.Coins.Coin
   alias AlexKoin.Commands
   alias AlexKoin.SlackDataHelpers
 
@@ -13,7 +11,6 @@ defmodule AlexKoin.SlackRtm do
 
   @koin_bot_id Application.get_env(:alex_koin, :koin_bot_id)
   @admin_id Application.get_env(:alex_koin, :admin_id)
-  @koin_lord_ids Application.get_env(:alex_koin, :koin_lord_ids)
 
   def handle_close(_info, _slack, state) do
     {:ok, state}
@@ -66,7 +63,6 @@ defmodule AlexKoin.SlackRtm do
       match_text =~ "leaderboard" -> {:leaderboard, text}
       match_text =~ "announce" -> {:announce, text}
       match_text =~ "display" -> {:display, text}
-      match_text =~ "reconcile" -> {:reconcile, text}
       true -> {:nothing, text}
     end
   end
@@ -88,20 +84,8 @@ defmodule AlexKoin.SlackRtm do
   defp create_reply(_user, message, {:help, _text}, slack) do
     Commands.Help.execute(message, slack)
   end
-  defp create_reply(user = %{slack_id: @admin_id}, message, {:create, text}, slack) do
-    do_create_coin(user, text, slack, message, 0)
-  end
   defp create_reply(user, message, {:create, text}, slack) do
-    # Can create 1 koin per week per user for non-admin
-    start_of_week = Timex.beginning_of_week(Timex.now, :sun)
-    created_coins_this_week = Coin.created_by_user_since(user, start_of_week) |> Repo.one
-
-    cond do
-      koin_lord?(user) ->
-        do_create_coin(user, text, slack, message, 0)
-      true ->
-        do_create_coin(user, text, slack, message, created_coins_this_week)
-    end
+    Commands.CreateKoin.execute(user, message, text, slack)
   end
   defp create_reply(user, message, {:transfer, text}, slack) do
     regex = ~r/transfer (?<amount>[0-9]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
@@ -114,25 +98,7 @@ defmodule AlexKoin.SlackRtm do
     end
   end
   defp create_reply(user, _message, {:leaderboard, text}, slack) do
-    limit = fetch_limit_from_input(text)
-
-    Logger.info "#{user.first_name} is asking for the top #{limit} leaderboard.", ansi_color: :green
-
-    # Map of form [%{user_id: id, score: score}, ...]
-    board = SlackCommands.leaderboard_v2(limit)
-
-    leader_text = board
-                  |> Enum.map(fn(map) -> leaderboard_text(map, slack) end)
-                  |> Enum.join("\n")
-
-    {leader_text, nil}
-  end
-  defp create_reply(_user = %{slack_id: @admin_id}, _message, {:reconcile, _text}, _slack) do
-    Logger.info "Reconciling wallet balances...", ansi_color: :green
-
-    SlackCommands.reconcile
-
-    {"Finished reconciling wallets.", nil}
+    Commands.Leaderboard.execute(user, text, slack)
   end
   defp create_reply(user, message, {:display, text}, slack) do
     regex = ~r/display (?<msg>.*)/
@@ -174,73 +140,5 @@ defmodule AlexKoin.SlackRtm do
     SlackDataHelpers.send_raw_message({text, nil}, channel, slack)
 
     {"A koin well spent, no doubt.", SlackDataHelpers.message_ts(message)}
-  end
-
-  defp notify_creator(creator, reason, slack) do
-    msg = "You just mined an :akc_in_motion: for '#{reason}'."
-    dm_channel = SlackDataHelpers.dm_channel_for_slack_id(creator.slack_id, slack.ims)
-
-    if dm_channel do
-      SlackDataHelpers.send_raw_message({msg, nil}, dm_channel, slack)
-    end
-  end
-
-  defp leaderboard_text(map, slack) do
-    {:ok, user_id} = Map.fetch(map, :user_id)
-    {:ok, score} = Map.fetch(map, :score)
-    user = Repo.get_by(User, id: user_id)
-    "#{score} points :star: - #{SlackDataHelpers.name_to_display_from_slack_id(user.slack_id, slack.users)}"
-  end
-
-  defp leaderboard_text_for_wallet(wallet, slack) do
-    "#{wallet.balance} :akc: - #{SlackDataHelpers.name_to_display_from_slack_id(wallet.user.slack_id, slack.users)}"
-  end
-
-  defp fetch_limit_from_input(text) when text == "leaderboard", do: 5
-  defp fetch_limit_from_input(text) do
-    regex = ~r/leaderboard (?<limit>[0-9]+)/
-
-    if Regex.match?(regex, text) do
-      %{"limit" => input_limit} = Regex.named_captures(regex, text)
-      {limit, _rem} = Integer.parse(input_limit)
-
-      limit
-    else
-      5
-    end
-  end
-
-  defp do_create_coin(user, text, slack, message, created_koin_num) do
-    regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
-    Logger.info "#{user.first_name} #{user.last_name} creating new koin.", ansi_color: :green
-
-    if created_koin_num >= 1 do
-      Logger.info "#{user.first_name} #{user.last_name} tried to create a koin, but already made one this week.", ansi_color: :green
-      {"You get 1 koin per week, try again after Sunday.", SlackDataHelpers.message_ts(message)}
-    else
-      if Regex.match?(regex, text) do
-        %{"to_slack_id" => to_slack_id, "reason" => reason} = Regex.named_captures(regex, text)
-        to_user = SlackCommands.get_or_create(to_slack_id, slack)
-
-        if !admin?(user) && to_user.id == user.id do
-          {"You can only create a koin for someone else.", SlackDataHelpers.message_ts(message)}
-        else
-          coin = to_user |> SlackCommands.create_coin(user, reason)
-          notify_creator(to_user, reason, slack)
-
-          {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", SlackDataHelpers.message_ts(message)}
-        end
-      else
-        {"Invalid syntax: `create koin [@user] for [reason here]`", SlackDataHelpers.message_ts(message)}
-      end
-    end
-  end
-
-  defp koin_lord?(%{slack_id: slack_id}) do
-    String.match?(@koin_lord_ids, ~r/#{slack_id}/)
-  end
-
-  defp admin?(%{slack_id: slack_id}) do
-    slack_id == @admin_id
   end
 end

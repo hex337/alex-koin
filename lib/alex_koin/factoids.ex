@@ -1,7 +1,5 @@
 defmodule AlexKoin.Factoids do
   alias AlexKoin.Repo
-  alias AlexKoin.Account
-  alias AlexKoin.Account.{Wallet}
   alias AlexKoin.Coins.Coin
 
   def koins_this_week do
