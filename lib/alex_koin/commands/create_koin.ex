@@ -36,8 +36,8 @@ defmodule AlexKoin.Commands.CreateKoin do
           {"You can only create a koin for someone else.", SlackDataHelpers.message_ts(message)}
         else
           coin = to_user |> SlackCommands.create_coin(user, reason)
-          message = "You just mined an :akc: for '#{reason}'."
-          SlackDataHelpers.dm_user(to_user, slack, message)
+          mine_message = "You just mined an :akc: for '#{reason}'."
+          SlackDataHelpers.dm_user(to_user, slack, mine_message)
 
           {"Created a new koin: `#{coin.hash}` with origin: '#{coin.origin}'", SlackDataHelpers.message_ts(message)}
         end
