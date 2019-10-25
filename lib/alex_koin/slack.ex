@@ -89,9 +89,18 @@ defmodule AlexKoin.SlackRtm do
   end
   defp create_reply(user, message, {:transfer, text}, slack) do
     regex = ~r/transfer (?<amount>[0-9]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
+    regex_canada_localized = ~r/transfer a loon(ie)? to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
+    regex_canada_localized2 = ~r/transfer a toonie to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
 
-    if Regex.match?(regex, text) do
-      %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => amount} = Regex.named_captures(regex, text)
+    cond do
+      Regex.match?(regex, text) ->
+        %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => amount} = Regex.named_captures(regex, text)
+      Regex.match?(regex_canada_localized, text) ->
+        %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => 1} = Regex.named_captures(regex, text)
+      Regex.match?(regex_canada_localized2, text) ->
+        %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => 2} = Regex.named_captures(regex, text)
+    end
+    if !!amount do
       Commands.Transfer.execute(user, message, slack, memo, to_slack_id, amount)
     else
       {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", SlackDataHelpers.message_ts(message)}
