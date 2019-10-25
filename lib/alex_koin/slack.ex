@@ -95,15 +95,20 @@ defmodule AlexKoin.SlackRtm do
     cond do
       Regex.match?(regex, text) ->
         %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => amount} = Regex.named_captures(regex, text)
+        loc = "us"
+        Commands.Transfer.execute(user, message, slack, memo, to_slack_id, amount, loc)
       Regex.match?(regex_canada_localized, text) ->
-        %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => 1} = Regex.named_captures(regex, text)
+        %{"memo" => memo, "to_slack_id" => to_slack_id} = Regex.named_captures(regex_canada_localized, text)
+        amount = "1"
+        loc = "ca"
+        Commands.Transfer.execute(user, message, slack, memo, to_slack_id, amount, loc)
       Regex.match?(regex_canada_localized2, text) ->
-        %{"memo" => memo, "to_slack_id" => to_slack_id, "amount" => 2} = Regex.named_captures(regex, text)
-    end
-    if !!amount do
-      Commands.Transfer.execute(user, message, slack, memo, to_slack_id, amount)
-    else
-      {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", SlackDataHelpers.message_ts(message)}
+        %{"memo" => memo, "to_slack_id" => to_slack_id} = Regex.named_captures(regex_canada_localized2, text)
+        amount = "2"
+        loc = "ca"
+        Commands.Transfer.execute(user, message, slack, memo, to_slack_id, amount, loc)
+      true ->
+        {"Error: Transfer format is 'transfer [koin amount: integer] to @user [memo here]'", SlackDataHelpers.message_ts(message)}
     end
   end
   defp create_reply(user, _message, {:leaderboard, text}, slack) do

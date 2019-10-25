@@ -24,7 +24,7 @@ defmodule AlexKoin.SlackCommands do
         new_wallet = %Wallet{ user_id: user_obj.id, balance: 0.0 }
         {:ok, _wallet} = Repo.insert(new_wallet)
 
-        user_obj
+        Repo.one from u in User, where: u.slack_id == ^slack_id, preload: [:wallet]
       db_user ->
         db_user
     end
