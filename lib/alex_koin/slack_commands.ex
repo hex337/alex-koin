@@ -80,8 +80,39 @@ defmodule AlexKoin.SlackCommands do
     # 1. get coins to transfer
     coins = Repo.all(Coin.for_wallet(from_wallet, amount))
 
-    # 2. move the coins over to the other wallet
-    Enum.each(coins, fn(c) -> transfer_coin(c, from_wallet, to_wallet, memo) end)
+    # 2. Create the transaction, for now use the first coin's id
+    #    The coin id is legacy when we could only transfer 1 koin at a time
+    txn = %{
+        amount: amount,
+        memo: memo,
+        from_id: from_wallet.id,
+        to_id: to_wallet.id,
+        coin_id: List.first(coins).id
+      }
+    |> Transaction.changeset()
+    |> Repo.insert!()
+
+    # 3. Move the koins
+    # Pull the to_wallet again in case what we have is stale
+    to_wallet = Wallet |> Repo.get_by(id: to_wallet.id)
+    AlexKoin.Account.update_wallet(to_wallet, %{balance: to_wallet.balance + amount})
+
+    # Update the owner of all the koins
+    coin_ids = Enum.map(coins, &(&1.id))
+
+    query = from(c in Coin, where: c.id in ^coin_ids)
+    Repo.update_all(query,
+      set: [
+        wallet_id: to_wallet.id
+      ]
+    )
+
+    if from_wallet.id != to_wallet.id do # if we're not creating a coin, decrement the from_wallet
+      from_wallet = Wallet |> Repo.get_by(id: from_wallet.id)
+      AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - amount})
+    end
+
+    {:ok, txn}
   end
 
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
