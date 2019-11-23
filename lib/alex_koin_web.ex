@@ -28,8 +28,9 @@ defmodule AlexKoinWeb do
 
   def view do
     quote do
-      use Phoenix.View, root: "lib/alex_koin_web/templates",
-                        namespace: AlexKoinWeb
+      use Phoenix.View,
+        root: "lib/alex_koin_web/templates",
+        namespace: AlexKoinWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]

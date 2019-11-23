@@ -4,7 +4,7 @@ defmodule AlexKoinWeb.WalletController do
   alias AlexKoin.Account
   alias AlexKoin.Account.Wallet
 
-  action_fallback AlexKoinWeb.FallbackController
+  action_fallback(AlexKoinWeb.FallbackController)
 
   def index(conn, _params) do
     wallets = Account.list_wallets()
@@ -35,6 +35,7 @@ defmodule AlexKoinWeb.WalletController do
 
   def delete(conn, %{"id" => id}) do
     wallet = Account.get_wallet!(id)
+
     with {:ok, %Wallet{}} <- Account.delete_wallet(wallet) do
       send_resp(conn, :no_content, "")
     end

@@ -11,7 +11,6 @@ defmodule AlexKoinWeb.WalletView do
   end
 
   def render("wallet.json", %{wallet: wallet}) do
-    %{id: wallet.id,
-      balance: wallet.balance}
+    %{id: wallet.id, balance: wallet.balance}
   end
 end

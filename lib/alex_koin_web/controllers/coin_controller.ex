@@ -4,7 +4,7 @@ defmodule AlexKoinWeb.CoinController do
   alias AlexKoin.Coins
   alias AlexKoin.Coins.Coin
 
-  action_fallback AlexKoinWeb.FallbackController
+  action_fallback(AlexKoinWeb.FallbackController)
 
   def index(conn, _params) do
     coins = Coins.list_coins()
@@ -36,6 +36,7 @@ defmodule AlexKoinWeb.CoinController do
 
   def delete(conn, %{"id" => id}) do
     coin = Coins.get_coin!(id)
+
     with {:ok, %Coin{}} <- Coins.delete_coin(coin) do
       send_resp(conn, :no_content, "")
     end
