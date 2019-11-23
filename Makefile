@@ -23,6 +23,9 @@ build: #: Build containers
 deps: #: Install the dependencies
 	docker-compose run --rm $(SERVICE) mix deps.get
 
+format: #: Interactive elixir shell on container
+	docker-compose run --rm $(SERVICE) mix format
+
 iex: #: Interactive elixir shell on container
 	docker-compose exec $(SERVICE) iex -S mix
 
