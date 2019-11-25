@@ -298,9 +298,10 @@ defmodule AlexKoin.Account do
   def transactions_since(date) do
     naive_date = DateTime.to_naive(date)
 
-    from t in Transaction,
+    from(t in Transaction,
       where: t.inserted_at >= ^naive_date and t.from_id != t.to_id,
       preload: [:sender, :recipient]
+    )
   end
 
   def wallet_for_user(%{id: user_id}) do

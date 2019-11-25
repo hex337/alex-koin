@@ -19,8 +19,7 @@ config :alex_koin, AlexKoinWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "bB7leglq64+Lvhx7d7W0BY6m6rJDv0+X9NJEoaZfKMea1RTpUPWNawG4y+w/yz7+",
   render_errors: [view: AlexKoinWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: AlexKoin.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: AlexKoin.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -29,12 +28,11 @@ config :logger, :console,
   colors: [enabled: true]
 
 # Configure Slack Bot
-config :alex_koin, AlexKoin.Slack,
-  token: System.get_env("SLACK_TOKEN")
+config :alex_koin, AlexKoin.Slack, token: System.get_env("SLACK_TOKEN")
 
-config :slack, 
+config :slack,
   api_token: System.get_env("SLACK_TOKEN")
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

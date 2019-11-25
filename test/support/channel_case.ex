@@ -25,13 +25,13 @@ defmodule AlexKoinWeb.ChannelCase do
     end
   end
 
-
   setup tags do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(AlexKoin.Repo)
+
     unless tags[:async] do
       Ecto.Adapters.SQL.Sandbox.mode(AlexKoin.Repo, {:shared, self()})
     end
+
     :ok
   end
-
 end

@@ -1,6 +1,6 @@
 defmodule AlexKoin.Account.User do
   use Ecto.Schema
-  import Ecto.{ Changeset }
+  import Ecto.Changeset
   alias AlexKoin.Account.Wallet
   alias AlexKoin.Coins.Coin
 
@@ -8,13 +8,13 @@ defmodule AlexKoin.Account.User do
   @koin_lord_ids Application.get_env(:alex_koin, :koin_lord_ids)
 
   schema "users" do
-    field :email, :string
-    field :first_name, :string
-    field :last_name, :string
-    field :slack_id, :string
+    field(:email, :string)
+    field(:first_name, :string)
+    field(:last_name, :string)
+    field(:slack_id, :string)
 
-    has_one :wallet, Wallet
-    has_many :coins, Coin, foreign_key: :mined_by_id
+    has_one(:wallet, Wallet)
+    has_many(:coins, Coin, foreign_key: :mined_by_id)
 
     timestamps()
   end

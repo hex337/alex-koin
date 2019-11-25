@@ -12,7 +12,12 @@ defmodule AlexKoin.CoinsTest do
     @invalid_attrs %{hash: nil, origin: nil}
 
     @wallet_attrs %{balance: 0.0}
-    @user_attrs %{email: "asdf@asdf.com", first_name: "alex", last_name: "koin", slack_id: "U1234567"}
+    @user_attrs %{
+      email: "asdf@asdf.com",
+      first_name: "alex",
+      last_name: "koin",
+      slack_id: "U1234567"
+    }
 
     def user_fixture(attrs \\ %{}) do
       {:ok, user} =
@@ -60,7 +65,10 @@ defmodule AlexKoin.CoinsTest do
     test "create_coin/1 with valid data creates a coin" do
       user = user_fixture()
       wallet = wallet_fixture(%{user_id: user.id})
-      attrs = @valid_attrs |> Enum.into(%{mined_by_id: user.id, wallet_id: wallet.id, created_by_user_id: user.id})
+
+      attrs =
+        @valid_attrs
+        |> Enum.into(%{mined_by_id: user.id, wallet_id: wallet.id, created_by_user_id: user.id})
 
       assert {:ok, %Coin{} = coin} = Coins.create_coin(attrs)
       assert coin.hash == "some hash"

@@ -4,7 +4,7 @@ defmodule AlexKoinWeb.TransactionController do
   alias AlexKoin.Account
   alias AlexKoin.Account.Transaction
 
-  action_fallback AlexKoinWeb.FallbackController
+  action_fallback(AlexKoinWeb.FallbackController)
 
   def index(conn, _params) do
     transactions = Account.list_transactions()
@@ -29,13 +29,15 @@ defmodule AlexKoinWeb.TransactionController do
   def update(conn, %{"id" => id, "transaction" => transaction_params}) do
     transaction = Account.get_transaction!(id)
 
-    with {:ok, %Transaction{} = transaction} <- Account.update_transaction(transaction, transaction_params) do
+    with {:ok, %Transaction{} = transaction} <-
+           Account.update_transaction(transaction, transaction_params) do
       render(conn, "show.json", transaction: transaction)
     end
   end
 
   def delete(conn, %{"id" => id}) do
     transaction = Account.get_transaction!(id)
+
     with {:ok, %Transaction{}} <- Account.delete_transaction(transaction) do
       send_resp(conn, :no_content, "")
     end
