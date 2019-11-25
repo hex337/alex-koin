@@ -2,6 +2,7 @@ defmodule AlexKoin.SlackCommands do
   require Logger
 
   import Ecto.Query, only: [from: 2]
+  alias Ecto.Multi
 
   alias AlexKoin.Repo
   alias AlexKoin.Account
@@ -76,43 +77,56 @@ defmodule AlexKoin.SlackCommands do
     AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - amount})
   end
 
-  def transfer(from_wallet, to_wallet, amount, memo) do
-    # 1. get coins to transfer
-    coins = Repo.all(Coin.for_wallet(from_wallet, amount))
-
-    # 2. Create the transaction, for now use the first coin's id
-    #    The coin id is legacy when we could only transfer 1 koin at a time
-    txn = %{
+  def transfer(%Wallet{id: from_wallet_id}, %Wallet{id: to_wallet_id}, amount, memo) do
+    Multi.new
+    |> Multi.run(:coins, fn _repo, _ ->
+      coins = from(c in Coin, 
+        where: c.wallet_id == ^from_wallet_id,
+        limit: ^amount)
+        |> Repo.all
+      {:ok, coins}
+    end)
+    |> Multi.run(:transaction, fn _repo, %{coins: [%{id: coin_id} | _]} ->
+      transaction = %{
         amount: amount,
         memo: memo,
-        from_id: from_wallet.id,
-        to_id: to_wallet.id,
-        coin_id: List.first(coins).id
+        from_id: from_wallet_id,
+        to_id: to_wallet_id,
+        coin_id: coin_id
       }
-    |> Transaction.changeset()
-    |> Repo.insert!()
+      |> Transaction.changeset()
+      |> Repo.insert!()
+      {:ok, transaction}
+    end)
+    |> Multi.run(:transfer_coin_ownership, fn _repo, %{coins: coins} -> 
+      coin_ids = Enum.map(coins, &(&1.id))
 
-    # 3. Move the koins
-    # Pull the to_wallet again in case what we have is stale
-    to_wallet = Wallet |> Repo.get_by(id: to_wallet.id)
-    AlexKoin.Account.update_wallet(to_wallet, %{balance: to_wallet.balance + amount})
+      from(c in Coin, where: c.id in ^coin_ids, update: [set: [wallet_id: ^to_wallet_id]])
+      |> Repo.update_all([])
 
-    # Update the owner of all the koins
-    coin_ids = Enum.map(coins, &(&1.id))
-
-    query = from(c in Coin, where: c.id in ^coin_ids)
-    Repo.update_all(query,
-      set: [
-        wallet_id: to_wallet.id
-      ]
-    )
-
-    if from_wallet.id != to_wallet.id do # if we're not creating a coin, decrement the from_wallet
-      from_wallet = Wallet |> Repo.get_by(id: from_wallet.id)
-      AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - amount})
+      {:ok, nil}
+    end)
+    |> Multi.run(:decrement_from_wallet, fn _repo, _ ->
+      from_wallet = Repo.get(Wallet, from_wallet_id)
+      Account.update_wallet(
+        from_wallet, 
+        %{balance: from_wallet.balance - amount}
+      )
+      {:ok, nil}
+    end)
+    |> Multi.run(:increment_to_wallet, fn _repo, _ ->
+      to_wallet = Repo.get(Wallet, to_wallet_id)
+      Account.update_wallet(
+        to_wallet, 
+        %{balance: to_wallet.balance + amount}
+      )
+      {:ok, nil}
+    end)
+    |> Repo.transaction
+    |> case do
+      {:ok, %{transaction: transaction}} -> {:ok, transaction}
+      {:error, err} -> {:error, err}
     end
-
-    {:ok, txn}
   end
 
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
