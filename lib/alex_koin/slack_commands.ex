@@ -2,6 +2,7 @@ defmodule AlexKoin.SlackCommands do
   require Logger
 
   import Ecto.Query, only: [from: 2]
+  alias Ecto.Multi
 
   alias AlexKoin.Repo
   alias AlexKoin.Account
@@ -85,12 +86,56 @@ defmodule AlexKoin.SlackCommands do
     AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - amount})
   end
 
-  def transfer(from_wallet, to_wallet, amount, memo) do
-    # 1. get coins to transfer
-    coins = Repo.all(Coin.for_wallet(from_wallet, amount))
+  def transfer(%Wallet{id: from_wallet_id}, %Wallet{id: to_wallet_id}, amount, memo) do
+    Multi.new
+    |> Multi.run(:coins, fn _repo, _ ->
+      coins = from(c in Coin, 
+        where: c.wallet_id == ^from_wallet_id,
+        limit: ^amount)
+        |> Repo.all
+      {:ok, coins}
+    end)
+    |> Multi.run(:transaction, fn _repo, %{coins: [%{id: coin_id} | _]} ->
+      transaction = %{
+        amount: amount,
+        memo: memo,
+        from_id: from_wallet_id,
+        to_id: to_wallet_id,
+        coin_id: coin_id
+      }
+      |> Transaction.changeset()
+      |> Repo.insert!()
+      {:ok, transaction}
+    end)
+    |> Multi.run(:transfer_coin_ownership, fn _repo, %{coins: coins} -> 
+      coin_ids = Enum.map(coins, &(&1.id))
 
-    # 2. move the coins over to the other wallet
-    Enum.each(coins, fn c -> transfer_coin(c, from_wallet, to_wallet, memo) end)
+      from(c in Coin, where: c.id in ^coin_ids, update: [set: [wallet_id: ^to_wallet_id]])
+      |> Repo.update_all([])
+
+      {:ok, nil}
+    end)
+    |> Multi.run(:decrement_from_wallet, fn _repo, _ ->
+      from_wallet = Repo.get(Wallet, from_wallet_id)
+      Account.update_wallet(
+        from_wallet, 
+        %{balance: from_wallet.balance - amount}
+      )
+      {:ok, nil}
+    end)
+    |> Multi.run(:increment_to_wallet, fn _repo, _ ->
+      to_wallet = Repo.get(Wallet, to_wallet_id)
+      Account.update_wallet(
+        to_wallet, 
+        %{balance: to_wallet.balance + amount}
+      )
+      {:ok, nil}
+    end)
+    |> Repo.transaction
+    |> case do
+      {:ok, %{transaction: transaction}} -> {:ok, transaction}
+      {:error, err} -> {:error, err}
+    end
   end
 
   def transfer_coin(coin, from_wallet, to_wallet, memo) do
