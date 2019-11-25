@@ -1,19 +1,18 @@
 defmodule AlexKoin.Coins.Coin do
-  import Ecto.{ Changeset, Query }
+  import Ecto.{Changeset, Query}
   use Ecto.Schema
 
-  alias AlexKoin.Account.{ User, Wallet }
+  alias AlexKoin.Account.{User, Wallet}
   alias __MODULE__
 
-
   schema "coins" do
-    field :hash, :string
-    field :origin, :string
-    field :created_by_user_id, :integer
+    field(:hash, :string)
+    field(:origin, :string)
+    field(:created_by_user_id, :integer)
 
-    belongs_to :user, User, foreign_key: :mined_by_id
+    belongs_to(:user, User, foreign_key: :mined_by_id)
     # belongs_to :created_by_user, User, foreign_key: :created_by_user_id
-    belongs_to :wallet, Wallet
+    belongs_to(:wallet, Wallet)
 
     timestamps()
   end
@@ -27,37 +26,42 @@ defmodule AlexKoin.Coins.Coin do
   end
 
   def for_wallet(wallet, amount) do
-    from c in Coin,
+    from(c in Coin,
       where: c.wallet_id == ^wallet.id,
       limit: ^amount
+    )
   end
 
   def for_wallet(wallet) do
-    from c in Coin,
+    from(c in Coin,
       where: c.wallet_id == ^wallet.id
+    )
   end
 
   def count_from_date(date) do
     naive_date = DateTime.to_naive(date)
 
-    from c in Coin,
+    from(c in Coin,
       select: count(c.id),
       where: c.inserted_at >= ^naive_date
+    )
   end
 
   def mined_since(date) do
     naive_date = DateTime.to_naive(date)
 
-    from c in Coin,
+    from(c in Coin,
       where: c.inserted_at >= ^naive_date,
       preload: :user
+    )
   end
 
   def created_by_user_since(user, date) do
     naive_date = DateTime.to_naive(date)
 
-    from c in Coin,
+    from(c in Coin,
       select: count(c.id),
       where: c.inserted_at >= ^naive_date and c.created_by_user_id == ^user.id
+    )
   end
 end

@@ -10,7 +10,12 @@ defmodule AlexKoin.AccountTest do
     @update_attrs %{balance: 456.7}
     @invalid_attrs %{balance: nil}
 
-    @user_attrs %{email: "asdf@asdf.net", first_name: "alex", last_name: "koin", slack_id: "U1234567"}
+    @user_attrs %{
+      email: "asdf@asdf.net",
+      first_name: "alex",
+      last_name: "koin",
+      slack_id: "U1234567"
+    }
 
     def fixture(:user) do
       {:ok, user} = Account.create_user(@user_attrs)
@@ -79,8 +84,18 @@ defmodule AlexKoin.AccountTest do
   describe "users" do
     alias AlexKoin.Account.User
 
-    @valid_attrs %{email: "some email", first_name: "some first_name", last_name: "some last_name", slack_id: "some slack_id"}
-    @update_attrs %{email: "some updated email", first_name: "some updated first_name", last_name: "some updated last_name", slack_id: "some updated slack_id"}
+    @valid_attrs %{
+      email: "some email",
+      first_name: "some first_name",
+      last_name: "some last_name",
+      slack_id: "some slack_id"
+    }
+    @update_attrs %{
+      email: "some updated email",
+      first_name: "some updated first_name",
+      last_name: "some updated last_name",
+      slack_id: "some updated slack_id"
+    }
     @invalid_attrs %{email: nil, first_name: nil, last_name: nil, slack_id: nil}
 
     def user_fixture(attrs \\ %{}) do

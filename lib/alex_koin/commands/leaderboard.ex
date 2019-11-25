@@ -8,9 +8,10 @@ defmodule AlexKoin.Commands.Leaderboard do
     limit = fetch_limit_from_input(text)
     board = SlackCommands.leaderboard_v2(limit)
 
-    leader_text = board
-                  |> Enum.map(fn(map) -> leaderboard_text(map, slack) end)
-                  |> Enum.join("\n")
+    leader_text =
+      board
+      |> Enum.map(fn map -> leaderboard_text(map, slack) end)
+      |> Enum.join("\n")
 
     {leader_text, nil}
   end
@@ -19,10 +20,14 @@ defmodule AlexKoin.Commands.Leaderboard do
     {:ok, user_id} = Map.fetch(map, :user_id)
     {:ok, score} = Map.fetch(map, :score)
     user = Repo.get_by(User, id: user_id)
-    "#{score} points :star: - #{SlackDataHelpers.name_to_display_from_slack_id(user.slack_id, slack.users)}"
+
+    "#{score} points :star: - #{
+      SlackDataHelpers.name_to_display_from_slack_id(user.slack_id, slack.users)
+    }"
   end
 
   defp fetch_limit_from_input(text) when text == "leaderboard", do: 5
+
   defp fetch_limit_from_input(text) do
     regex = ~r/leaderboard (?<limit>[0-9]+)/
 

@@ -11,10 +11,12 @@ defmodule AlexKoinWeb.UserView do
   end
 
   def render("user.json", %{user: user}) do
-    %{id: user.id,
+    %{
+      id: user.id,
       email: user.email,
       first_name: user.first_name,
       last_name: user.last_name,
-      slack_id: user.slack_id}
+      slack_id: user.slack_id
+    }
   end
 end

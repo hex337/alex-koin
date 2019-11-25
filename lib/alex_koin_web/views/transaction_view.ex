@@ -11,8 +11,6 @@ defmodule AlexKoinWeb.TransactionView do
   end
 
   def render("transaction.json", %{transaction: transaction}) do
-    %{id: transaction.id,
-      amount: transaction.amount,
-      memo: transaction.memo}
+    %{id: transaction.id, amount: transaction.amount, memo: transaction.memo}
   end
 end

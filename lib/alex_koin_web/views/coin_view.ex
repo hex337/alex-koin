@@ -11,8 +11,6 @@ defmodule AlexKoinWeb.CoinView do
   end
 
   def render("coin.json", %{coin: coin}) do
-    %{id: coin.id,
-      hash: coin.hash,
-      origin: coin.origin}
+    %{id: coin.id, hash: coin.hash, origin: coin.origin}
   end
 end

@@ -4,7 +4,7 @@ defmodule AlexKoinWeb.UserController do
   alias AlexKoin.Account
   alias AlexKoin.Account.User
 
-  action_fallback AlexKoinWeb.FallbackController
+  action_fallback(AlexKoinWeb.FallbackController)
 
   def index(conn, _params) do
     users = Account.list_users()
@@ -35,6 +35,7 @@ defmodule AlexKoinWeb.UserController do
 
   def delete(conn, %{"id" => id}) do
     user = Account.get_user!(id)
+
     with {:ok, %User{}} <- Account.delete_user(user) do
       send_resp(conn, :no_content, "")
     end

@@ -17,7 +17,7 @@ config :alex_koin, AlexKoinWeb.Endpoint,
   http: [port: {:system, "PORT"}],
   load_from_system_env: true,
   url: [host: "${APP_NAME}.gigalixirapp.com", port: 443],
-  #cache_static_manifest: "priv/static/cache_manifest.json",
+  # cache_static_manifest: "priv/static/cache_manifest.json",
   server: true,
   root: ".",
   version: Application.spec(:alex_koin, :vsn)
