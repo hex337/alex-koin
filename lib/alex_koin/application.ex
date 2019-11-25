@@ -23,6 +23,8 @@ defmodule AlexKoin.Application do
   end
 
   defp get_children("test") do
+    import Supervisor.Spec
+
     [
       # Start the Ecto repository
       supervisor(AlexKoin.Repo, []),
@@ -36,6 +38,8 @@ defmodule AlexKoin.Application do
   end
 
   defp slackbot_supervisor do
+    import Supervisor.Spec
+
     slack_token = Application.get_env(:alex_koin, AlexKoin.Slack)[:token]
 
     supervisor(Slack.Bot, [AlexKoin.SlackRtm, [], slack_token])
