@@ -53,7 +53,7 @@ defmodule AlexKoin.SlackCommands do
 
   defp update_user_info(user, _user_info), do: user
 
-  defp get_wallet(%User{id: user_id}) do
+  defp get_user_wallet(%User{id: user_id}) do
     Wallet
     |> Repo.get_by(user_id: user_id)
     |> case do
@@ -63,9 +63,9 @@ defmodule AlexKoin.SlackCommands do
   end
 
   def create_coin(user = %User{}, created_by_user = %User{}, reason) do
-    Multi.new
-    |> Multi.run(:wallet, fn _repo, _changes->
-      get_wallet(user)
+    Multi.new()
+    |> Multi.run(:wallet, fn _repo, _changes ->
+      get_user_wallet(user)
     end)
     |> Multi.run(:new_coin, fn _repo, %{wallet: wallet} ->
       Coins.create_coin(%{
@@ -78,9 +78,9 @@ defmodule AlexKoin.SlackCommands do
     end)
     |> Multi.run(:transfer_coin, fn _repo, %{new_coin: new_coin, wallet: wallet} ->
       # Now we create the initial transaction to set the coin up
-      {:ok, _txn} = transfer_coin(new_coin, wallet, wallet, "Initial creation.")
+      transfer_coin(new_coin, wallet, wallet, "Initial creation.")
     end)
-    |> Repo.transaction
+    |> Repo.transaction()
     |> case do
       {:ok, %{new_coin: new_coin}} -> {:ok, new_coin}
       err -> err
@@ -88,7 +88,7 @@ defmodule AlexKoin.SlackCommands do
   end
 
   def remove_coins(from_wallet = %Wallet{balance: balance}, amount) do
-    Multi.new
+    Multi.new()
     |> Multi.run(:delete_coins, fn _, _ ->
       coins =
         from_wallet
@@ -105,7 +105,7 @@ defmodule AlexKoin.SlackCommands do
     |> Multi.run(:update_wallet, fn _, _ ->
       AlexKoin.Account.update_wallet(from_wallet, %{balance: balance - amount})
     end)
-    |> Repo.transaction
+    |> Repo.transaction()
     |> case do
       {:ok, _} -> :ok
       {:error, :delete_coins, :not_enough_coins, _} -> {:error, :not_enough_coins}
@@ -113,55 +113,52 @@ defmodule AlexKoin.SlackCommands do
     end
   end
 
-  def transfer(%Wallet{id: from_wallet_id}, %Wallet{id: to_wallet_id}, amount, memo) do
-    Multi.new
+  def transfer(from_wallet = %Wallet{id: from_wallet_id}, to_wallet = %Wallet{}, amount, memo) do
+    Multi.new()
     |> Multi.run(:coins, fn _repo, _ ->
-      coins = from(c in Coin,
+      from(c in Coin,
         where: c.wallet_id == ^from_wallet_id,
-        limit: ^amount)
-        |> Repo.all
-      {:ok, coins}
+        limit: ^amount
+      )
+      |> Repo.all()
+      |> case do
+        coins when length(coins) < amount -> {:error, :coins_not_found}
+        coins -> {:ok, coins}
+      end
     end)
     |> Multi.run(:transaction, fn _repo, %{coins: [%{id: coin_id} | _]} ->
-      transaction = %{
+      %Transaction{}
+      |> Transaction.changeset(%{
         amount: amount,
         memo: memo,
         from_id: from_wallet_id,
-        to_id: to_wallet_id,
+        to_id: to_wallet.id,
         coin_id: coin_id
-      }
-      |> Transaction.changeset()
-      |> Repo.insert!()
-      {:ok, transaction}
+      })
+      |> Repo.insert()
     end)
     |> Multi.run(:transfer_coin_ownership, fn _repo, %{coins: coins} ->
-      coin_ids = Enum.map(coins, &(&1.id))
+      coin_ids = Enum.map(coins, & &1.id)
 
-      from(c in Coin, where: c.id in ^coin_ids, update: [set: [wallet_id: ^to_wallet_id]])
-      |> Repo.update_all([])
+      from(c in Coin, where: c.id in ^coin_ids and c.wallet_id == ^from_wallet_id)
+      |> Repo.update_all(set: [wallet_id: to_wallet.id])
 
       {:ok, nil}
     end)
     |> Multi.run(:decrement_from_wallet, fn _repo, _ ->
-      from_wallet = Repo.get(Wallet, from_wallet_id)
-      Account.update_wallet(
-        from_wallet,
-        %{balance: from_wallet.balance - amount}
-      )
-      {:ok, nil}
+      Wallet
+      |> Repo.get(from_wallet_id)
+      |> Account.update_wallet(%{balance: from_wallet.balance - amount})
     end)
     |> Multi.run(:increment_to_wallet, fn _repo, _ ->
-      to_wallet = Repo.get(Wallet, to_wallet_id)
-      Account.update_wallet(
-        to_wallet,
-        %{balance: to_wallet.balance + amount}
-      )
-      {:ok, nil}
+      Wallet
+      |> Repo.get(to_wallet.id)
+      |> Account.update_wallet(%{balance: to_wallet.balance + amount})
     end)
-    |> Repo.transaction
+    |> Repo.transaction()
     |> case do
       {:ok, %{transaction: transaction}} -> {:ok, transaction}
-      {:error, err} -> {:error, err}
+      err -> err
     end
   end
 
@@ -211,7 +208,6 @@ defmodule AlexKoin.SlackCommands do
         min_balance
         |> Wallet.by_minimum_balance()
         |> Repo.all()
-
     end
   end
 
