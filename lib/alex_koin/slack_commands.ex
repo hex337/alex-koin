@@ -53,43 +53,70 @@ defmodule AlexKoin.SlackCommands do
 
   defp update_user_info(user, _user_info), do: user
 
-  def get_balance(wallet) do
-    wallet.balance
+  defp get_wallet(%User{id: user_id}) do
+    Wallet
+    |> Repo.get_by(user_id: user_id)
+    |> case do
+      nil -> {:error, :not_found}
+      wallet -> {:ok, wallet}
+    end
   end
 
-  def get_coins(_wallet) do
+  def create_coin(user = %User{}, created_by_user = %User{}, reason) do
+    Multi.new
+    |> Multi.run(:wallet, fn _repo, _changes->
+      get_wallet(user)
+    end)
+    |> Multi.run(:new_coin, fn _repo, %{wallet: wallet} ->
+      Coins.create_coin(%{
+        origin: reason,
+        mined_by_id: user.id,
+        hash: UUID.uuid1(),
+        created_by_user_id: created_by_user.id,
+        wallet_id: wallet.id
+      })
+    end)
+    |> Multi.run(:transfer_coin, fn _repo, %{new_coin: new_coin, wallet: wallet} ->
+      # Now we create the initial transaction to set the coin up
+      {:ok, _txn} = transfer_coin(new_coin, wallet, wallet, "Initial creation.")
+    end)
+    |> Repo.transaction
+    |> case do
+      {:ok, %{new_coin: new_coin}} -> {:ok, new_coin}
+      err -> err
+    end
   end
 
-  def create_coin(user, created_by_user, reason) do
-    user_wallet = Wallet |> Repo.get_by(user_id: user.id)
+  def remove_coins(from_wallet = %Wallet{balance: balance}, amount) do
+    Multi.new
+    |> Multi.run(:delete_coins, fn _, _ ->
+      coins =
+        from_wallet
+        |> Coin.for_wallet(amount)
+        |> Repo.all()
 
-    new_coin = %Coin{
-      origin: reason,
-      mined_by_id: user.id,
-      hash: UUID.uuid1(),
-      created_by_user_id: created_by_user.id,
-      wallet_id: user_wallet.id
-    }
-
-    {:ok, coin} = Repo.insert(new_coin)
-
-    # Now we create the initial transaction to set the coin up
-    {:ok, _txn} = transfer_coin(coin, user_wallet, user_wallet, "Initial creation.")
-
-    coin
-  end
-
-  def remove_coins(from_wallet, amount) do
-    coins = Repo.all(Coin.for_wallet(from_wallet, amount))
-    Enum.each(coins, fn c -> Coins.delete_coin(c) end)
-
-    AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - amount})
+      if length(coins) == amount do
+        Enum.each(coins, &Coins.delete_coin(&1))
+        {:ok, amount}
+      else
+        {:error, :not_enough_coins}
+      end
+    end)
+    |> Multi.run(:update_wallet, fn _, _ ->
+      AlexKoin.Account.update_wallet(from_wallet, %{balance: balance - amount})
+    end)
+    |> Repo.transaction
+    |> case do
+      {:ok, _} -> :ok
+      {:error, :delete_coins, :not_enough_coins, _} -> {:error, :not_enough_coins}
+      err -> err
+    end
   end
 
   def transfer(%Wallet{id: from_wallet_id}, %Wallet{id: to_wallet_id}, amount, memo) do
     Multi.new
     |> Multi.run(:coins, fn _repo, _ ->
-      coins = from(c in Coin, 
+      coins = from(c in Coin,
         where: c.wallet_id == ^from_wallet_id,
         limit: ^amount)
         |> Repo.all
@@ -107,7 +134,7 @@ defmodule AlexKoin.SlackCommands do
       |> Repo.insert!()
       {:ok, transaction}
     end)
-    |> Multi.run(:transfer_coin_ownership, fn _repo, %{coins: coins} -> 
+    |> Multi.run(:transfer_coin_ownership, fn _repo, %{coins: coins} ->
       coin_ids = Enum.map(coins, &(&1.id))
 
       from(c in Coin, where: c.id in ^coin_ids, update: [set: [wallet_id: ^to_wallet_id]])
@@ -118,7 +145,7 @@ defmodule AlexKoin.SlackCommands do
     |> Multi.run(:decrement_from_wallet, fn _repo, _ ->
       from_wallet = Repo.get(Wallet, from_wallet_id)
       Account.update_wallet(
-        from_wallet, 
+        from_wallet,
         %{balance: from_wallet.balance - amount}
       )
       {:ok, nil}
@@ -126,7 +153,7 @@ defmodule AlexKoin.SlackCommands do
     |> Multi.run(:increment_to_wallet, fn _repo, _ ->
       to_wallet = Repo.get(Wallet, to_wallet_id)
       Account.update_wallet(
-        to_wallet, 
+        to_wallet,
         %{balance: to_wallet.balance + amount}
       )
       {:ok, nil}
@@ -171,10 +198,21 @@ defmodule AlexKoin.SlackCommands do
 
   # Returns wallet objects with the users preloaded.
   def leaderboard(limit) do
-    wallets = Repo.all(Wallet.by_balance(limit))
-    min_balance = List.last(wallets).balance
+    limit
+    |> Wallet.by_balance()
+    |> Repo.all()
+    |> List.last()
+    |> case do
+      nil ->
+        {:ok, []}
 
-    Repo.all(Wallet.by_minimum_balance(min_balance))
+      # Fetch again so that to include additional wallets with equal balance to the minimum
+      %Wallet{balance: min_balance} ->
+        min_balance
+        |> Wallet.by_minimum_balance()
+        |> Repo.all()
+
+    end
   end
 
   def leaderboard_v2(limit) do

@@ -10,6 +10,8 @@ KOIN_BOT_ID ?= `grep 'KOIN_BOT_ID=' .env | cut -d '=' -f2`
 
 default: help
 
+all: build deps up setup_db migrate
+
 assets: #: install npm assets for the project
 	docker-compose exec $(SERVICE) bash -c "cd assets && npm install"
 
@@ -78,3 +80,4 @@ docker-build: #: Build a container for deployment
 
 help: #: Show help topics
 	@grep "#:" Makefile* | grep -v "@grep" | sort | sed "s/\([A-Za-z_ -]*\):.*#\(.*\)/$$(tput setaf 3)\1$$(tput sgr0)\2/g"
+
