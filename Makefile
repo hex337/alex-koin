@@ -10,7 +10,7 @@ KOIN_BOT_ID ?= `grep 'KOIN_BOT_ID=' .env | cut -d '=' -f2`
 
 default: help
 
-all: build deps up setup_db migrate
+all: build deps up setup_db migrate #: Boot up the project with db dependencies
 
 assets: #: install npm assets for the project
 	docker-compose exec $(SERVICE) bash -c "cd assets && npm install"
