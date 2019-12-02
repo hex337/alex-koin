@@ -158,10 +158,12 @@ defmodule AlexKoin.SlackCommandsTest do
       coin: coin
     } do
       assert_balances([{source_wallet, 1}, {target_wallet, 0}])
+      assert Repo.get(Coin, coin.id).wallet_id == source_wallet.id
 
       assert {:ok, %Transaction{amount: 1.0}} =
                SlackCommands.transfer_coin(coin, source_wallet, target_wallet, @memo)
 
+      assert Repo.get(Coin, coin.id).wallet_id == target_wallet.id
       assert_balances([{source_wallet, 0}, {target_wallet, 1}])
     end
 
@@ -171,10 +173,12 @@ defmodule AlexKoin.SlackCommandsTest do
       coin: coin
     } do
       assert_balances([{source_wallet, 1}, {target_wallet, 0}])
+      assert Repo.get(Coin, coin.id).wallet_id == source_wallet.id
 
       assert {:error, _, _, _} =
                SlackCommands.transfer_coin(coin, target_wallet, source_wallet, @memo)
 
+      assert Repo.get(Coin, coin.id).wallet_id == source_wallet.id
       assert_balances([{source_wallet, 1}, {target_wallet, 0}])
     end
   end
