@@ -45,7 +45,6 @@ defmodule AlexKoin.Mixfile do
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.5"},
       {:distillery, "~> 2.1.1"},
-
       {:ex_machina, "~> 2.3", only: :test},
       {:faker, "~> 0.13", only: :test}
     ]
