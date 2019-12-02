@@ -8,6 +8,17 @@ defmodule AlexKoin.SlackCommandsTest do
 
   @memo "All of the reasons"
 
+  def assert_balances([]), do: true
+
+  def assert_balances([{wallet, amount} | rest]) do
+    float_amount = amount / 1
+
+    assert %Wallet{balance: ^float_amount} = Repo.get(Wallet, wallet.id)
+    assert amount == wallet |> Coin.for_wallet() |> Repo.all() |> length
+
+    assert_balances(rest)
+  end
+
   describe "create_coin" do
     setup do
       user = insert(:user)
@@ -67,18 +78,11 @@ defmodule AlexKoin.SlackCommandsTest do
       }
     end
 
-    def assert_balances([]), do: true
-    def assert_balances([{wallet, amount} | rest]) do
-      float_amount = amount / 1
-
-      assert %Wallet{balance: ^float_amount} = Repo.get(Wallet, wallet.id)
-      assert amount == wallet |> Coin.for_wallet() |> Repo.all |> length
-
-      assert_balances(rest)
-    end
-
     @tag coin_count: 0
-    test "errors when there are no coins", %{source_wallet: source_wallet , target_wallet: target_wallet} do
+    test "errors when there are no coins", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet
+    } do
       assert_balances([{source_wallet, 0}, {target_wallet, 0}])
 
       assert %Wallet{balance: 0.0} = Repo.get(Wallet, source_wallet.id)
@@ -86,7 +90,10 @@ defmodule AlexKoin.SlackCommandsTest do
     end
 
     @tag coin_count: 1
-    test "fails if wallet has insufficient coins", %{source_wallet: source_wallet , target_wallet: target_wallet} do
+    test "fails if wallet has insufficient coins", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet
+    } do
       assert_balances([{source_wallet, 1}, {target_wallet, 0}])
 
       assert {:error, _, _, _} = SlackCommands.transfer(source_wallet, target_wallet, 2, @memo)
@@ -95,28 +102,80 @@ defmodule AlexKoin.SlackCommandsTest do
     end
 
     @tag coin_count: 1
-    test "transfers coin successfully", %{source_wallet: source_wallet , target_wallet: target_wallet} do
+    test "transfers coin successfully", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet
+    } do
       assert_balances([{source_wallet, 1}, {target_wallet, 0}])
 
-      assert {:ok, %Transaction{amount: 1.0}} = SlackCommands.transfer(source_wallet, target_wallet, 1, @memo)
+      assert {:ok, %Transaction{amount: 1.0}} =
+               SlackCommands.transfer(source_wallet, target_wallet, 1, @memo)
 
       assert_balances([{source_wallet, 0}, {target_wallet, 1}])
     end
 
     @tag coin_count: 2
-    test "transfers 2 coins successfully", %{source_wallet: source_wallet , target_wallet: target_wallet} do
+    test "transfers 2 coins successfully", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet
+    } do
       assert_balances([{source_wallet, 2}, {target_wallet, 0}])
 
-      assert {:ok, %Transaction{amount: 2.0}} = SlackCommands.transfer(source_wallet, target_wallet, 2, @memo)
+      assert {:ok, %Transaction{amount: 2.0}} =
+               SlackCommands.transfer(source_wallet, target_wallet, 2, @memo)
 
       assert_balances([{source_wallet, 0}, {target_wallet, 2}])
     end
 
     @tag coin_count: 10
-    test "transfers 5 coins successfully", %{source_wallet: source_wallet , target_wallet: target_wallet} do
+    test "transfers 5 coins successfully", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet
+    } do
       assert_balances([{source_wallet, 10}, {target_wallet, 0}])
-      assert {:ok, %Transaction{amount: 5.0}} = SlackCommands.transfer(source_wallet, target_wallet, 5, @memo)
+
+      assert {:ok, %Transaction{amount: 5.0}} =
+               SlackCommands.transfer(source_wallet, target_wallet, 5, @memo)
+
       assert_balances([{source_wallet, 5}, {target_wallet, 5}])
+    end
+  end
+
+  describe "transfer_coin" do
+    setup _ do
+      source_wallet = insert(:wallet, balance: 1)
+
+      %{
+        source_wallet: source_wallet,
+        target_wallet: insert(:wallet),
+        coin: insert(:coin, wallet: source_wallet)
+      }
+    end
+
+    test "transfers coin", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet,
+      coin: coin
+    } do
+      assert_balances([{source_wallet, 1}, {target_wallet, 0}])
+
+      assert {:ok, %Transaction{amount: 1.0}} =
+               SlackCommands.transfer_coin(coin, source_wallet, target_wallet, @memo)
+
+      assert_balances([{source_wallet, 0}, {target_wallet, 1}])
+    end
+
+    test "errors if wallet has no coins", %{
+      source_wallet: source_wallet,
+      target_wallet: target_wallet,
+      coin: coin
+    } do
+      assert_balances([{source_wallet, 1}, {target_wallet, 0}])
+
+      assert {:error, _, _, _} =
+               SlackCommands.transfer_coin(coin, target_wallet, source_wallet, @memo)
+
+      assert_balances([{source_wallet, 1}, {target_wallet, 0}])
     end
   end
 end

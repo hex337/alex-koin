@@ -7,7 +7,7 @@ defmodule AlexKoin.SlackCommands do
   alias AlexKoin.Repo
   alias AlexKoin.Account
   alias AlexKoin.Account.{User, Wallet, Transaction}
-  alias AlexKoin.Coins
+  # alias AlexKoin.Coins
   alias AlexKoin.Coins.Coin
 
   # Use slack to populate name and email
@@ -18,22 +18,22 @@ defmodule AlexKoin.SlackCommands do
         {:ok, info} -> info
       end
 
-    user =
-      case Repo.one(from(u in User, where: u.slack_id == ^slack_id, preload: [:wallet])) do
-        nil ->
-          new_user = %User{slack_id: slack_id}
-          {:ok, user_obj} = Repo.insert(new_user)
+    from(u in User, where: u.slack_id == ^slack_id, preload: [:wallet])
+    |> Repo.one()
+    |> case do
+      nil ->
+        new_user = %User{slack_id: slack_id}
+        {:ok, user_obj} = Repo.insert(new_user)
 
-          new_wallet = %Wallet{user_id: user_obj.id, balance: 0.0}
-          {:ok, _wallet} = Repo.insert(new_wallet)
+        new_wallet = %Wallet{user_id: user_obj.id, balance: 0.0}
+        {:ok, _wallet} = Repo.insert(new_wallet)
 
-          Repo.one(from(u in User, where: u.slack_id == ^slack_id, preload: [:wallet]))
+        Repo.one(from(u in User, where: u.slack_id == ^slack_id, preload: [:wallet]))
 
-        db_user ->
-          db_user
-      end
-
-    update_user_info(user, user_info)
+      db_user ->
+        db_user
+    end
+    |> update_user_info(user_info)
   end
 
   defp update_user_info(user, nil), do: user
@@ -64,11 +64,9 @@ defmodule AlexKoin.SlackCommands do
 
   def create_coin(user = %User{}, created_by_user = %User{}, reason) do
     Multi.new()
-    |> Multi.run(:wallet, fn _repo, _changes ->
-      get_user_wallet(user)
-    end)
-    |> Multi.run(:new_coin, fn _repo, %{wallet: wallet} ->
-      Coins.create_coin(%{
+    |> Multi.run(:wallet, fn _repo, _changes -> get_user_wallet(user) end)
+    |> Multi.insert(:new_coin, fn %{wallet: wallet} ->
+      Coin.changeset(%Coin{}, %{
         origin: reason,
         mined_by_id: user.id,
         hash: UUID.uuid1(),
@@ -76,10 +74,7 @@ defmodule AlexKoin.SlackCommands do
         wallet_id: wallet.id
       })
     end)
-    |> Multi.run(:transfer_coin, fn _repo, %{new_coin: new_coin, wallet: wallet} ->
-      # Now we create the initial transaction to set the coin up
-      transfer_coin(new_coin, wallet, wallet, "Initial creation.")
-    end)
+    |> transfer_coin_multi(:new_coin, :wallet, :wallet, "Initial creation.")
     |> Repo.transaction()
     |> case do
       {:ok, %{new_coin: new_coin}} -> {:ok, new_coin}
@@ -88,73 +83,54 @@ defmodule AlexKoin.SlackCommands do
   end
 
   def remove_coins(from_wallet = %Wallet{balance: balance}, amount) do
-    Multi.new()
-    |> Multi.run(:delete_coins, fn _, _ ->
-      coins =
-        from_wallet
-        |> Coin.for_wallet(amount)
-        |> Repo.all()
-
-      if length(coins) == amount do
-        Enum.each(coins, &Coins.delete_coin(&1))
-        {:ok, amount}
-      else
-        {:error, :not_enough_coins}
-      end
-    end)
-    |> Multi.run(:update_wallet, fn _, _ ->
-      AlexKoin.Account.update_wallet(from_wallet, %{balance: balance - amount})
-    end)
-    |> Repo.transaction()
-    |> case do
-      {:ok, _} -> :ok
-      {:error, :delete_coins, :not_enough_coins, _} -> {:error, :not_enough_coins}
-      err -> err
+    with {:ok, coins} <- Coin.get_amount_from_wallet(from_wallet, amount),
+         multi <-
+           Enum.reduce(coins, Multi.new(), fn coin, multi ->
+             Multi.delete(multi, coin, coin)
+           end),
+         multi <-
+           Multi.update(
+             multi,
+             :update_wallet,
+             Wallet.changeset(from_wallet, %{balance: balance - amount})
+           ),
+         {:ok, _} <- Repo.transaction(multi) do
+      :ok
     end
   end
 
   def transfer(from_wallet = %Wallet{id: from_wallet_id}, to_wallet = %Wallet{}, amount, memo) do
     Multi.new()
-    |> Multi.run(:coins, fn _repo, _ ->
-      from(c in Coin,
-        where: c.wallet_id == ^from_wallet_id,
-        limit: ^amount
-      )
-      |> Repo.all()
-      |> case do
-        coins when length(coins) < amount -> {:error, :coins_not_found}
-        coins -> {:ok, coins}
-      end
-    end)
-    |> Multi.run(:transaction, fn _repo, %{coins: [%{id: coin_id} | _]} ->
-      %Transaction{}
-      |> Transaction.changeset(%{
+    |> Multi.run(:coins, fn _, _ -> Coin.get_amount_from_wallet(from_wallet, amount) end)
+    |> Multi.insert(:transaction, fn %{coins: [%{id: coin_id} | _]} ->
+      Transaction.changeset(%Transaction{}, %{
         amount: amount,
         memo: memo,
         from_id: from_wallet_id,
         to_id: to_wallet.id,
         coin_id: coin_id
       })
-      |> Repo.insert()
     end)
-    |> Multi.run(:transfer_coin_ownership, fn _repo, %{coins: coins} ->
-      coin_ids = Enum.map(coins, & &1.id)
+    |> Multi.run(:coin_ids, fn _repo, %{coins: coins} -> {:ok, Enum.map(coins, & &1.id)} end)
+    |> Multi.run(:transfer_coin_ownership, fn repo, %{coin_ids: coin_ids} ->
+      {update_count, nil} =
+        from(c in Coin, where: c.id in ^coin_ids and c.wallet_id == ^from_wallet_id)
+        |> repo.update_all(set: [wallet_id: to_wallet.id, updated_at: Timex.now()])
 
-      from(c in Coin, where: c.id in ^coin_ids and c.wallet_id == ^from_wallet_id)
-      |> Repo.update_all(set: [wallet_id: to_wallet.id])
-
-      {:ok, nil}
+      if update_count == amount do
+        {:ok, nil}
+      else
+        {:error, :coin_transfer_mismatch}
+      end
     end)
-    |> Multi.run(:decrement_from_wallet, fn _repo, _ ->
-      Wallet
-      |> Repo.get(from_wallet_id)
-      |> Account.update_wallet(%{balance: from_wallet.balance - amount})
-    end)
-    |> Multi.run(:increment_to_wallet, fn _repo, _ ->
-      Wallet
-      |> Repo.get(to_wallet.id)
-      |> Account.update_wallet(%{balance: to_wallet.balance + amount})
-    end)
+    |> Multi.update(
+      :decrement_from_wallet,
+      Wallet.changeset(from_wallet, %{balance: from_wallet.balance - amount})
+    )
+    |> Multi.update(
+      :increment_to_wallet,
+      Wallet.changeset(to_wallet, %{balance: to_wallet.balance + amount})
+    )
     |> Repo.transaction()
     |> case do
       {:ok, %{transaction: transaction}} -> {:ok, transaction}
@@ -162,35 +138,55 @@ defmodule AlexKoin.SlackCommands do
     end
   end
 
-  def transfer_coin(coin, from_wallet, to_wallet, memo) do
+  defp transfer_coin_multi(multi, coin_key, from_wallet_key, to_wallet_key, memo) do
+    multi
+    |> Multi.insert(
+      :transaction,
+      fn %{^coin_key => coin, ^from_wallet_key => from_wallet, ^to_wallet_key => to_wallet} ->
+        Transaction.changeset(%Transaction{}, %{
+          amount: 1.0,
+          memo: memo,
+          from_id: from_wallet.id,
+          to_id: to_wallet.id,
+          coin_id: coin.id
+        })
+      end
+    )
+    |> Multi.update(
+      :update_to_wallet,
+      fn %{^to_wallet_key => to_wallet} ->
+        Wallet.changeset(to_wallet, %{balance: to_wallet.balance + 1})
+      end
+    )
+    |> Multi.update(:update_from_wallet, fn %{^from_wallet_key => from_wallet} ->
+      Wallet.changeset(from_wallet, %{balance: from_wallet.balance - 1})
+    end)
+    |> Multi.update(:update_coin, fn %{^coin_key => coin, ^to_wallet_key => to_wallet} ->
+      Coin.changeset(coin, %{wallet_id: to_wallet.id})
+    end)
+  end
+
+  def transfer_coin(coin = %Coin{}, from_wallet = %Wallet{}, to_wallet = %Wallet{}, memo) do
     Logger.info("Transfering koin #{coin.id} from #{from_wallet.id} to #{to_wallet.id}",
       ansi_color: :green
     )
 
-    txn =
-      %{
-        amount: 1.0,
-        memo: memo,
-        from_id: from_wallet.id,
-        to_id: to_wallet.id,
-        coin_id: coin.id
-      }
-      |> Transaction.changeset()
-      |> Repo.insert!()
-
-    # Pull the to_wallet again in case what we have is stale
-    to_wallet = Wallet |> Repo.get_by(id: to_wallet.id)
-    # update the balance
-    AlexKoin.Account.update_wallet(to_wallet, %{balance: to_wallet.balance + 1})
-    AlexKoin.Coins.update_coin(coin, %{wallet_id: to_wallet.id})
-
-    # if we're not creating a coin, decrement the from_wallet
-    if from_wallet.id != to_wallet.id do
-      from_wallet = Wallet |> Repo.get_by(id: from_wallet.id)
-      AlexKoin.Account.update_wallet(from_wallet, %{balance: from_wallet.balance - 1})
+    Multi.new()
+    |> Multi.run(:from_wallet, fn _, _ -> {:ok, from_wallet} end)
+    |> Multi.run(:to_wallet, fn _, _ -> {:ok, to_wallet} end)
+    |> Multi.run(:coin, fn _, %{from_wallet: %Wallet{id: wallet_id}} ->
+      if wallet_id == coin.wallet_id do
+        {:ok, coin}
+      else
+        {:error, :incorrect_coin_owner}
+      end
+    end)
+    |> transfer_coin_multi(:coin, :from_wallet, :to_wallet, memo)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{transaction: transaction}} -> {:ok, transaction}
+      err -> err
     end
-
-    {:ok, txn}
   end
 
   # Returns wallet objects with the users preloaded.
