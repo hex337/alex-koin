@@ -2,16 +2,16 @@ defmodule AlexKoin.Coins.Coin do
   import Ecto.{Changeset, Query}
   use Ecto.Schema
 
+  alias AlexKoin.Repo
   alias AlexKoin.Account.{User, Wallet}
   alias __MODULE__
 
   schema "coins" do
     field(:hash, :string)
     field(:origin, :string)
-    field(:created_by_user_id, :integer)
 
     belongs_to(:user, User, foreign_key: :mined_by_id)
-    # belongs_to :created_by_user, User, foreign_key: :created_by_user_id
+    belongs_to(:created_by_user, User)
     belongs_to(:wallet, Wallet)
 
     timestamps()
@@ -23,6 +23,18 @@ defmodule AlexKoin.Coins.Coin do
     |> cast(attrs, [:hash, :origin, :mined_by_id, :wallet_id, :created_by_user_id])
     |> validate_required([:hash, :origin, :mined_by_id, :wallet_id, :created_by_user_id])
     |> foreign_key_constraint(:created_by_user_id)
+  end
+
+  def get_amount_from_wallet(wallet, amount) do
+    from(c in Coin,
+      where: c.wallet_id == ^wallet.id,
+      limit: ^amount
+    )
+    |> Repo.all()
+    |> case do
+      coins when length(coins) < amount -> {:error, :not_enough_coins}
+      coins -> {:ok, coins}
+    end
   end
 
   def for_wallet(wallet, amount) do

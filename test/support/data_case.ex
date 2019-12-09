@@ -22,6 +22,7 @@ defmodule AlexKoin.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import AlexKoin.DataCase
+      import AlexKoin.Factory
     end
   end
 
