@@ -8,13 +8,17 @@ defmodule AlexKoin.SlackCommandsTest do
 
   @memo "All of the reasons"
 
-  def assert_balances([]), do: true
-
-  def assert_balances([{wallet, amount} | rest]) do
+  def assert_balance(%Wallet{} = wallet, amount) do
     float_amount = amount / 1
 
     assert %Wallet{balance: ^float_amount} = Repo.get(Wallet, wallet.id)
     assert amount == wallet |> Coin.for_wallet() |> Repo.all() |> length
+  end
+
+  def assert_balances([]), do: true
+
+  def assert_balances([{wallet, amount} | rest]) do
+    assert_balance(wallet, amount)
 
     assert_balances(rest)
   end
@@ -37,6 +41,14 @@ defmodule AlexKoin.SlackCommandsTest do
       assert new_coin.origin == reason
       assert new_coin.created_by_user_id == user_id
       assert new_coin.mined_by_id == user_id
+    end
+
+    test "balance of wallet increases by 1", %{user: user, reason: reason, wallet: wallet} do
+      assert_balance(wallet, 0)
+
+      assert {:ok, %Coin{}} = SlackCommands.create_coin(user, user, reason)
+
+      assert_balance(wallet, 1)
     end
 
     test "fails with invalid reason", %{user: user} do
