@@ -158,8 +158,12 @@ defmodule AlexKoin.SlackCommands do
         Wallet.changeset(to_wallet, %{balance: to_wallet.balance + 1})
       end
     )
-    |> Multi.update(:update_from_wallet, fn %{^from_wallet_key => from_wallet} ->
-      Wallet.changeset(from_wallet, %{balance: from_wallet.balance - 1})
+    |> Multi.update(:update_from_wallet, fn
+      %{^from_wallet_key => same_wallet, ^to_wallet_key => same_wallet} ->
+        Wallet.changeset(same_wallet, %{})
+
+      %{^from_wallet_key => from_wallet} ->
+        Wallet.changeset(from_wallet, %{balance: from_wallet.balance - 1})
     end)
     |> Multi.update(:update_coin, fn %{^coin_key => coin, ^to_wallet_key => to_wallet} ->
       Coin.changeset(coin, %{wallet_id: to_wallet.id})
