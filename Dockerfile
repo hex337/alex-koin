@@ -1,6 +1,6 @@
 ARG ALPINE_VERSION=3.8
 
-FROM elixir:1.7.4-alpine AS builder
+FROM elixir:1.9.4-alpine AS builder
 
 ARG SLACK_TOKEN
 ARG KOIN_BOT_ID

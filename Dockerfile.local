@@ -1,4 +1,4 @@
-FROM elixir:1.7.2
+FROM elixir:1.9.4
 
 ARG SLACK_TOKEN
 ARG KOIN_BOT_ID
