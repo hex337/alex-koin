@@ -19,3 +19,5 @@ erl_crash.dump
 
 .env*
 config/*.env
+
+cover

@@ -1,4 +1,4 @@
-.PHONY: assets bash build deps help iex logs migrate ps restart seed setup_db stop test up publish db_dump release
+.PHONY: assets bash build coverage deps help iex logs migrate ps restart seed setup_db stop test up publish db_dump release
 
 SERVICE ?= api
 
@@ -22,8 +22,12 @@ build: #: Build containers
 	touch config/docker.env
 	docker-compose build
 
+coverage: #: Generate HTML coverage report
+	docker-compose run --rm -e MIX_ENV=test $(SERVICE) mix coveralls.html
+	open cover/excoveralls.html
+
 deps: #: Install the dependencies
-	docker-compose run --rm $(SERVICE) mix deps.get
+	docker-compose run --rm -e MIX_ENV=test $(SERVICE) mix deps.get
 
 format: #: Run mix format
 	docker-compose run --rm $(SERVICE) mix format
