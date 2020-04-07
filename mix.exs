@@ -5,12 +5,14 @@ defmodule AlexKoin.Mixfile do
     [
       app: :alex_koin,
       version: "2.0.0",
-      elixir: "~> 1.7",
+      elixir: "~> 1.9",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [coveralls: :test, "coveralls.detail": :test, "coveralls.post": :test, "coveralls.html": :test]
     ]
   end
 
@@ -45,6 +47,7 @@ defmodule AlexKoin.Mixfile do
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.5"},
       {:distillery, "~> 2.1.1"},
+      {:excoveralls, "~> 0.10", only: :test},
       {:ex_machina, "~> 2.3", only: :test},
       {:faker, "~> 0.13", only: :test}
     ]
