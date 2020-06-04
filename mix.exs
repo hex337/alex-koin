@@ -36,6 +36,7 @@ defmodule AlexKoin.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.4.9"},
+      {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:phoenix_pubsub, "~> 1.0"},
       {:phoenix_ecto, "~> 4.0"},
       {:poison, "~> 3.1"},

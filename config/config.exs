@@ -28,7 +28,9 @@ config :logger, :console,
   colors: [enabled: true]
 
 # Configure Slack Bot
-config :alex_koin, AlexKoin.Slack, token: System.get_env("SLACK_TOKEN")
+config :alex_koin, AlexKoin.Slack,
+  token: System.get_env("SLACK_TOKEN"),
+  reloadable_compilers: [:gettext, :phoenix, :elixir]
 
 config :slack,
   api_token: System.get_env("SLACK_TOKEN")
