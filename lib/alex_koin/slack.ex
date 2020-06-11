@@ -76,6 +76,7 @@ defmodule AlexKoin.SlackRtm do
       match_text == "reconcile" -> {:reconcile, text}
       match_text =~ "announce" -> {:announce, text}
       match_text =~ "create koin" -> {:create, text}
+      match_text =~ "destroy koin" -> {:destroy, text}
       match_text =~ "my balance" -> {:balance, text}
       match_text =~ "balance for" -> {:other_balance, text}
       match_text =~ "transfer" -> {:transfer, text}
@@ -109,6 +110,10 @@ defmodule AlexKoin.SlackRtm do
 
   defp create_reply(user, message, {:create, text}, slack) do
     Commands.CreateKoin.execute(user, message, text, slack)
+  end
+
+  defp create_reply(user, message, {:destroy, text}, slack) do
+    Commands.DestroyKoin.execute(user, message, text, slack)
   end
 
   defp create_reply(_user = %{slack_id: @admin_id}, _message, {:reconcile, _text}, _slack) do

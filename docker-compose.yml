@@ -10,7 +10,7 @@ services:
     env_file:
       - config/docker.env
     ports:
-      - "4000:4000"
+      - "4001:4001"
     volumes:
       - .:/usr/src/alex-koin
     depends_on:
