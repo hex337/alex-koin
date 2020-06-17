@@ -161,7 +161,7 @@ defmodule AlexKoin.SlackRtm do
     if Regex.match?(regex, text) do
       %{"msg" => msg} = Regex.named_captures(regex, text)
       Logger.info("Sending announcement: '#{msg}'", ansi_color: :green)
-      channel = SlackDataHelpers.channel_id_for_name("alex_koin", slack.channels)
+      channel = SlackDataHelpers.channel_id_for_name("culture-alex-koin", slack.channels)
 
       if channel do
         SlackDataHelpers.send_raw_message({msg, nil}, channel, slack)
