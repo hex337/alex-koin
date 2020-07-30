@@ -74,13 +74,13 @@ defmodule AlexKoin.SlackRtm do
       match_text == "fact" -> {:fact, text}
       match_text == "help" -> {:help, text}
       match_text == "reconcile" -> {:reconcile, text}
+      match_text =~ "announce" -> {:announce, text}
       match_text =~ "create koin" -> {:create, text}
       match_text =~ "my balance" -> {:balance, text}
       match_text =~ "balance for" -> {:other_balance, text}
       match_text =~ "transfer" -> {:transfer, text}
       match_text =~ "list koins" -> {:list_koins, text}
       match_text =~ "leaderboard" -> {:leaderboard, text}
-      match_text =~ "announce" -> {:announce, text}
       match_text =~ "display" -> {:display, text}
       true -> {:nothing, text}
     end
