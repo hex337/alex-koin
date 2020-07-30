@@ -11,8 +11,9 @@ config :phoenix, :json_library, Poison
 config :alex_koin,
   ecto_repos: [AlexKoin.Repo],
   koin_bot_id: System.get_env("KOIN_BOT_ID"),
-  koin_lord_ids: System.get_env("KOIN_LORD_IDS"),
-  admin_id: System.get_env("ADMIN_ID")
+  koin_lord_ids: System.get_env("KOIN_LORD_IDS", "") |> String.split(","),
+  admin_id: System.get_env("ADMIN_ID"),
+  listening_channels: System.get_env("LISTENING_CHANNELS", "") |> String.split(",")
 
 # Configures the endpoint
 config :alex_koin, AlexKoinWeb.Endpoint,

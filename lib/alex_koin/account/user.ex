@@ -27,7 +27,7 @@ defmodule AlexKoin.Account.User do
   end
 
   def koin_lord?(%{slack_id: slack_id}) do
-    String.match?(@koin_lord_ids, ~r/#{slack_id}/)
+    slack_id in @koin_lord_ids
   end
 
   def admin?(%{slack_id: slack_id}) do
