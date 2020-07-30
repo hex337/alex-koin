@@ -3,14 +3,15 @@ use Mix.Config
 config :alex_koin,
   ecro_repos: [AlexKoin.Repo],
   koin_bot_id: System.get_env("KOIN_BOT_ID"),
-  koin_lord_ids: System.get_env("KOIN_LORD_IDS"),
-  admin_id: System.get_env("ADMIN_ID")
+  koin_lord_ids: System.get_env("KOIN_LORD_IDS", "") |> String.split(","),
+  admin_id: System.get_env("ADMIN_ID"),
+  listening_channels: System.get_env("LISTENING_CHANNELS", "") |> String.split(",")
 
 # Configure Slack Bot
 config :alex_koin, AlexKoin.Slack,
   token: System.get_env("SLACK_TOKEN")
 
-config :slack, 
+config :slack,
   api_token: System.get_env("SLACK_TOKEN")
 
 config :alex_koin, AlexKoin.Repo,

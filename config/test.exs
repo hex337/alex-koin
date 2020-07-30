@@ -6,6 +6,9 @@ config :alex_koin, AlexKoinWeb.Endpoint,
   http: [port: 4001],
   server: false
 
+config :alex_koin,
+  listening_channels: ["#bot-listener-channel"]
+
 # Print only warnings and errors during test
 config :logger, level: :warn
 
@@ -17,5 +20,3 @@ config :alex_koin, AlexKoin.Repo,
   database: "alex_koin_test",
   hostname: "db",
   pool: Ecto.Adapters.SQL.Sandbox
-
-config :alex_koin, :slack_module, AlexKoin.Test.SlackSendStub

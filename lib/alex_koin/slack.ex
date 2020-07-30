@@ -14,6 +14,7 @@ defmodule AlexKoin.SlackRtm do
 
   @koin_bot_id Application.get_env(:alex_koin, :koin_bot_id)
   @admin_id Application.get_env(:alex_koin, :admin_id)
+  @listening_channels Application.get_env(:alex_koin, :listening_channels, [])
 
   def handle_close(_info, _slack, state) do
     {:ok, state}
@@ -24,18 +25,27 @@ defmodule AlexKoin.SlackRtm do
     {:ok, state}
   end
 
-  def handle_event(%{type: "message", user: @koin_bot_id}, _slack, state), do: {:ok, state}
+  def handle_event(message = %{type: "message", user: user}, slack, state) do
+    case message do
+      # Ignore messages from yourself
+      %{user: @koin_bot_id} ->
+        {:ok, state}
 
-  def handle_event(message = %{type: "message", channel: "D" <> _rest, user: user}, slack, state) do
-    handle_msg(user, message, message_type(message.text), slack, state)
-  end
+      # Respond to messages that explicitly tag the bot
+      %{text: "<@" <> @koin_bot_id <> "> " <> text} ->
+        handle_msg(user, message, message_type(text), slack, state)
 
-  def handle_event(
-        message = %{type: "message", text: "<@" <> @koin_bot_id <> "> " <> text, user: user},
-        slack,
-        state
-      ) do
-    handle_msg(user, message, message_type(text), slack, state)
+      # Respond to Direct messages
+      %{channel: "D" <> _rest} ->
+        handle_msg(user, message, message_type(message.text), slack, state)
+
+      # Respond to messages in channels you are listening in
+      %{channel: channel} when channel in @listening_channels ->
+        handle_msg(user, message, message_type(message.text), slack, state)
+
+      _ ->
+        {:ok, state}
+    end
   end
 
   def handle_event(_, _, state), do: {:ok, state}

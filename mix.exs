@@ -50,7 +50,8 @@ defmodule AlexKoin.Mixfile do
       {:distillery, "~> 2.1.1"},
       {:excoveralls, "~> 0.10", only: :test},
       {:ex_machina, "~> 2.3", only: :test},
-      {:faker, "~> 0.13", only: :test}
+      {:faker, "~> 0.13", only: :test},
+      {:mock, "~> 0.3", only: :test}
     ]
   end
 
