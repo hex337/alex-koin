@@ -40,6 +40,15 @@ defmodule AlexKoin.SlackTest do
       }
     end
 
+    @tag prefix_bot_id: true,
+         request_text: "destroy koin <@UC37P4L3Y> for science",
+         response_text: "You pathetic human you don't have any family any friends or any land."
+    test "when not a koin lord and destroying a koin", %{slack_message: slack_message, response_json: response_json} do
+      assert SlackRtm.handle_event(slack_message, %{users: %{}, ims: %{}}, %{}) == {:ok, %{}}
+
+      assert_called Slack.Sends.send_raw(response_json, :_)
+    end
+
     @tag request_text: "<@UC37P4L3Y> my balance"
     test "does not respond to balance messages when user ", %{slack_message: slack_message} do
       assert SlackRtm.handle_event(slack_message, %{users: %{}, ims: %{}}, %{}) == {:ok, %{}}

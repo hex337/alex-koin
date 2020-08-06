@@ -20,12 +20,7 @@ The main things you'll have to get from slack are:
 * Optional Koin Lord ids, a single string with a comman between slack user ids.
 
 ```sh
-make build
-make deps
-make up
-make setup_db
-make migrate
-make up
+make build deps up setup_db migrate up
 ```
 
 You can then use `make log` to see if the server is running.
@@ -34,3 +29,10 @@ You can then use `make log` to see if the server is running.
 
 Use `make test` to run tests.
 
+## Interactive mode
+
+If you're a beginner with elixir, it might be really helpful to play with some things in interactive mode
+
+```sh
+iex -S mix run
+```
