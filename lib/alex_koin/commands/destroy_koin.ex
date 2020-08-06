@@ -4,7 +4,6 @@ defmodule AlexKoin.Commands.DestroyKoin do
   alias AlexKoin.SlackCommands
   alias AlexKoin.SlackDataHelpers
   alias AlexKoin.Account.User
-  alias AlexKoin.Coins.Coin
 
   def execute(user, message, text, slack) do
     cond do
@@ -15,7 +14,7 @@ defmodule AlexKoin.Commands.DestroyKoin do
         do_destroy_koin(user, text, message, slack)
 
       true ->
-        peasant_message = "You pathetic human you don't have any family any friends or any land"
+        peasant_message = "You pathetic human you don't have any family any friends or any land."
         { peasant_message, SlackDataHelpers.message_ts(message) }
     end
   end
@@ -33,6 +32,8 @@ defmodule AlexKoin.Commands.DestroyKoin do
         SlackCommands.remove_coins(wallet, amount)
 
         koin_destroyed_message = "How terribly sad, it seems one of your koin has suddenly disintegrated. Do honor your lords."
+        SlackDataHelpers.dm_user(to_user, slack, koin_destroyed_message)
+
         { koin_destroyed_message, SlackDataHelpers.message_ts(message) }
       else
         insufficient_koin_message = "You cannot destroy koin that does not exist. Try giving the user koin so that you can destroy it."
