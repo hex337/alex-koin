@@ -4,8 +4,6 @@ A distributed highly valued virtual currency.
 
 ## Set up for Local Development
 
-This assumes you have docker set up.
-
 Environment variables live in `config/docker.env`. You will want to copy the example file over, and then modify for your particular slack installation.
 
 ```
