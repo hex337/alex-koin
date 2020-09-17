@@ -69,7 +69,7 @@ defmodule AlexKoin.SlackRtm do
 
   defp message_type(text) do
     normalized_text = text |> String.split() |> Enum.join(" ")
-    match_text = String.downcase(text)
+    match_text = String.downcase(normalized_text)
 
     action =
       cond do
