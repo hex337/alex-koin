@@ -68,23 +68,27 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp message_type(text) do
+    normalized_text = text |> String.split() |> Enum.join(" ")
     match_text = String.downcase(text)
 
-    cond do
-      match_text == "fact" -> {:fact, text}
-      match_text == "help" -> {:help, text}
-      match_text == "reconcile" -> {:reconcile, text}
-      match_text =~ "announce" -> {:announce, text}
-      match_text =~ "create koin" -> {:create, text}
-      match_text =~ "destroy koin" -> {:destroy, text}
-      match_text =~ "my balance" -> {:balance, text}
-      match_text =~ "balance for" -> {:other_balance, text}
-      match_text =~ "transfer" -> {:transfer, text}
-      match_text =~ "list koins" -> {:list_koins, text}
-      match_text =~ "leaderboard" -> {:leaderboard, text}
-      match_text =~ "display" -> {:display, text}
-      true -> {:nothing, text}
-    end
+    action =
+      cond do
+        match_text == "fact" -> :fact
+        match_text == "help" -> :help
+        match_text == "reconcile" -> :reconcile
+        match_text =~ "announce" -> :announce
+        match_text =~ "create koin" -> :create
+        match_text =~ "destroy koin" -> :destroy
+        match_text =~ "my balance" -> :balance
+        match_text =~ "balance for" -> :other_balance
+        match_text =~ "transfer" -> :transfer
+        match_text =~ "list koins" -> :list_koins
+        match_text =~ "leaderboard" -> :leaderboard
+        match_text =~ "display" -> :display
+        true -> :nothing
+      end
+
+    {action, normalized_text}
   end
 
   defp create_reply(user, message, {:balance, _text}, _slack) do
