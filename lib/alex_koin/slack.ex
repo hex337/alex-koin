@@ -87,6 +87,7 @@ defmodule AlexKoin.SlackRtm do
         match_text =~ "display" -> :display
         true -> :nothing
       end
+
     {action, normalized_text}
   end
 
