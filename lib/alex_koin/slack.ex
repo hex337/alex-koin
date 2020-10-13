@@ -125,9 +125,9 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp create_reply(user, message, {:transfer, text}, slack) do
-    regex = ~r/transfer (?<amount>[0-9]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
-    regex_canada_localized = ~r/transfer a loon(ie)? to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
-    regex_canada_localized2 = ~r/transfer a toonie to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/
+    regex = ~r/transfer (?<amount>[0-9]+) to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/i
+    regex_canada_localized = ~r/transfer a loon(ie)? to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/i
+    regex_canada_localized2 = ~r/transfer a toonie to <@(?<to_slack_id>[A-Z0-9]+)> (?<memo>.*)/i
 
     cond do
       Regex.match?(regex, text) ->
@@ -164,7 +164,7 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp create_reply(user, message, {:display, text}, slack) do
-    regex = ~r/display (?<msg>.*)/
+    regex = ~r/^display (?<msg>.*)/i
 
     if Regex.match?(regex, text) do
       %{"msg" => msg} = Regex.named_captures(regex, text)
@@ -175,7 +175,7 @@ defmodule AlexKoin.SlackRtm do
   end
 
   defp create_reply(_user = %{slack_id: @admin_id}, _message, {:announce, text}, slack) do
-    regex = ~r/announce (?<msg>.*)/
+    regex = ~r/^announce (?<msg>.*)/i
 
     if Regex.match?(regex, text) do
       %{"msg" => msg} = Regex.named_captures(regex, text)
