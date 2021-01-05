@@ -16,6 +16,7 @@ erl_crash.dump
 /config/*.secret.exs
 
 .hex
+.hex/*
 .mix/archives
 
 .env*
