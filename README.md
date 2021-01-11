@@ -34,4 +34,3 @@ If you're a beginner with elixir, it might be really helpful to play with some t
 ```sh
 iex -S mix run
 ```
-
