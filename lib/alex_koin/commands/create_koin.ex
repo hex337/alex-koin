@@ -23,7 +23,7 @@ defmodule AlexKoin.Commands.CreateKoin do
   end
 
   defp do_create_coin(user, text, slack, message, created_koin_num) do
-    regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
+    regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)>\s+for\s+(?<reason>.*)/
     Logger.info("#{user.first_name} #{user.last_name} creating new koin.", ansi_color: :green)
 
     if created_koin_num >= 1 do
