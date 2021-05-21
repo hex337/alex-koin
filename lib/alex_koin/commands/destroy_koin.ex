@@ -20,7 +20,7 @@ defmodule AlexKoin.Commands.DestroyKoin do
   end
 
   defp do_destroy_koin(user, text, message, slack) do
-    amount = 1 # maybee get amount from text? :think:
+    amount = 1
     regex = ~r/<@(?<to_slack_id>[A-Z0-9]+)> for (?<reason>.*)/
     if Regex.match?(regex, text) do
       %{"to_slack_id" => to_slack_id, "reason" => reason} = Regex.named_captures(regex, text)
