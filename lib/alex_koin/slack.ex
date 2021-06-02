@@ -64,6 +64,7 @@ defmodule AlexKoin.SlackRtm do
     populated_slack =
       slack
       |> Map.put(:channels, Slack.Web.Channels.list(%{token: token}) |> Map.get("channels"))
+      |> Map.put(:ims, Slack.Web.Im.list(%{token: token}) |> Map.get("ims"))
       |> Map.put(:users, Slack.Web.Users.list(%{token: token}) |> Map.get("members"))
 
     SlackCommands.get_or_create(user, populated_slack)
