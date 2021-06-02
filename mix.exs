@@ -44,7 +44,7 @@ defmodule AlexKoin.Mixfile do
       {:postgrex, ">= 0.0.0"},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 2.0"},
-      {:slack, "~> 0.15.0"},
+      {:slack, "~> 0.23.0"},
       {:elixir_uuid, "~> 1.2"},
       {:timex, "~> 3.5"},
       {:distillery, "~> 2.1.1"},
