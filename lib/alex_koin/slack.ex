@@ -1,4 +1,6 @@
 defmodule AlexKoin.SlackRtm do
+  use Slack
+
   require Logger
 
   alias AlexKoin.SlackCommands
