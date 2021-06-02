@@ -61,14 +61,15 @@ defmodule AlexKoin.SlackRtm do
   defp handle_msg(user, message, message_type, slack, state) do
     token = Application.get_env(:alex_koin, :slack_module, :token)
 
-    slack
-    |> Map.put(:channels, Slack.Web.Channels.list(%{token: token}) |> Map.get("channels"))
-    |> Map.put(:users, Slack.Web.Users.list(%{token: token}) |> Map.get("members"))
+    populated_slack =
+      slack
+      |> Map.put(:channels, Slack.Web.Channels.list(%{token: token}) |> Map.get("channels"))
+      |> Map.put(:users, Slack.Web.Users.list(%{token: token}) |> Map.get("members"))
 
-    SlackCommands.get_or_create(user, slack)
+    SlackCommands.get_or_create(user, populated_slack)
     # returns tuple {text, message_ts}
-    |> create_reply(message, message_type, slack)
-    |> SlackDataHelpers.send_raw_message(message.channel, slack)
+    |> create_reply(message, message_type, populated_slack)
+    |> SlackDataHelpers.send_raw_message(message.channel, populated_slack)
 
     {:ok, state}
   end
