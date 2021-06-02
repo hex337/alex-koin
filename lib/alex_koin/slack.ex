@@ -59,6 +59,8 @@ defmodule AlexKoin.SlackRtm do
   def handle_info(_, _, state), do: {:ok, state}
 
   defp handle_msg(user, message, message_type, slack, state) do
+    token = Application.get_env(:alex_koin, :slack_module, :token)
+
     slack
     |> Map.put(:channels, Slack.Web.Channels.list(%{token: token}) |> Map.get("channels"))
     |> Map.put(:users, Slack.Web.Users.list(%{token: token}) |> Map.get("members"))
